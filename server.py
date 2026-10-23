@@ -12,7 +12,7 @@ import threading
 import urllib.request
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-INDEX_FILE = os.path.join(BASE_DIR, 'public', 'index.html')
+INDEX_FILE = os.path.join(BASE_DIR, 'index.html')
 API_HOST = 'https://api.warframe.market'
 ALLOWED_ORIGIN = os.environ.get('ALLOWED_ORIGIN', '')
 API_VERSIONS = ['v2']
