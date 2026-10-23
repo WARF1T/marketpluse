@@ -799,7 +799,7 @@ AI_RESPONSE_SCHEMA = {
 
 
 def call_ai_analysis(payload):
-    api_key = os.environ.get('GEMINI_API_KEY')
+    api_key = os.environ.get('AQ.Ab8RN6IrphuAeNw70oqpN0FFqEC0ZTu93XFo8-7_1Pm2WwUxwg')
     if not api_key:
         raise Exception('AI service is not configured on the server (GEMINI_API_KEY missing)')
     user_content = json.dumps({
