@@ -1,0 +1,1456 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0F14">
+<title>MarketPulse — аналитика фарма платины Warframe</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/unbounded@latest/cyrillic.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/unbounded@latest/latin.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/manrope@latest/cyrillic.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/manrope@latest/latin.css">
+<style>
+/* ============ ФИКС ШАПКИ (v3) ============ */
+html,body{max-width:100vw}
+body{overflow-x:hidden}
+@media (max-width:760px){
+header{
+display:grid;
+grid-template-columns:1fr auto auto;
+grid-template-rows:auto auto;
+gap:10px;
+padding:10px 12px;
+flex-wrap:nowrap;
+}
+.logo{grid-column:1;grid-row:1;min-width:0}
+.logo b{font-size:14px;letter-spacing:.08em}
+.chipApi{display:none}
+header > div:nth-of-type(3){grid-column:2;grid-row:1}  /* колокольчик */
+header > div:nth-of-type(4){grid-column:3;grid-row:1}  /* профиль */
+.searchWrap{grid-column:1/-1;grid-row:2;max-width:none;margin:0;flex:none;min-width:0}
+#globalSearch{width:100%}
+#suggestBox{max-width:calc(100vw - 24px)}
+.dropWrap{position:static}
+.drop{left:12px;right:12px;width:auto;top:calc(100% + 8px);max-height:70vh;overflow:auto}
+}
+/* ============ МОБИЛЬНАЯ АДАПТАЦИЯ v2 ============ */
+html{scroll-behavior:smooth}
+body{-webkit-tap-highlight-color:transparent;padding-bottom:env(safe-area-inset-bottom)}
+select,input{font-size:16px}
+@media (max-width:760px){
+header{flex-wrap:wrap;gap:10px;padding:10px 12px}
+.logo{order:0}
+.logo b{font-size:15px}
+.chipApi{order:1;margin-left:auto}
+.dropWrap{order:2;position:static}
+.searchWrap{order:5;flex-basis:100%;max-width:none;margin-left:0}
+.searchWrap kbd{display:none}
+#globalSearch{font-size:16px;padding:11px 14px 11px 38px}
+.iconBtn{width:38px;height:38px}
+/* панели открываются ровно под шапкой, не уезжают за экран */
+.drop{left:12px;right:12px;width:auto;top:calc(100% + 8px);max-height:70vh;overflow:auto}
+main{padding:14px 12px 40px}
+.tabs{padding:10px 12px 0;-webkit-overflow-scrolling:touch}
+.tab{padding:10px 12px;font-size:12px}
+.hero{min-height:360px;border-radius:20px}
+.heroSlide{padding:18px 16px 46px;grid-template-columns:1fr}
+.heroSlide img{opacity:.28;right:-60px}
+.heroTitle{font-size:24px}
+.heroSub{font-size:13px;margin-bottom:12px}
+.heroDots{left:16px;bottom:14px}
+.heroNav{right:12px;bottom:10px}
+.toolbar{gap:8px}
+.toolbar .sp{display:none}
+.toolbar select{flex:1;font-size:16px}
+.grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.pcard{padding:11px}
+.pcard .art{height:86px;font-size:30px}
+.pcard b{font-size:13px}
+.statGrid{grid-template-columns:repeat(2,1fr);gap:8px}
+.stat b{font-size:16px}
+.itArt{width:64px;height:64px;font-size:30px}
+.itName{font-size:18px}
+.duo,.calcGrid{grid-template-columns:1fr}
+canvas.chart{height:210px!important}
+.cOut{font-size:24px}
+.dashHead{gap:12px}
+.avaBig{width:40px;height:40px}
+.row{flex-wrap:wrap}
+.toast{max-width:calc(100vw - 28px)}
+.modal{padding:16px}
+footer{padding:20px 14px}
+}
+@media (max-width:400px){
+.chipApi{display:none}
+header > div:nth-of-type(3){margin-left:auto} /* колокол+профиль справа даже без чипа API */
+.grid{grid-template-columns:1fr 1fr;gap:8px}
+.pcard .art{height:74px}
+.priceP{font-size:14px}
+.vol{display:none}
+.heroTitle{font-size:21px}
+}
+@media (pointer:coarse){
+#cursorGlow{display:none}
+[data-tip]:hover::after{content:none}
+.btn,.chip,.tab{touch-action:manipulation}
+}
+/* ============ МОБИЛЬНАЯ ПРОИЗВОДИТЕЛЬНОСТЬ ============ */
+.pcard .art img{display:block;will-change:auto}
+.marketMore{contain:layout paint}
+@media (pointer:coarse){
+*{-webkit-tap-highlight-color:transparent}
+.gcard,.drop,.overlay,header,.ticker,#globalSearch,#suggestBox,.btn,.heroNav button,.toast{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.gcard:hover,.btn:hover,.iconBtn:hover{transform:none;box-shadow:var(--shadow)}
+.tickerTrack{animation-duration:70s}
+#stars{display:none!important}
+.view{animation:none!important}
+.skel::after{animation:none!important}
+}
+@media (max-width:760px){
+.grid{content-visibility:auto;contain:layout style paint}
+.pcard{contain:content;min-width:0}
+.pcard .art{background:var(--bg1)}
+.heroSlide img{filter:none}
+.hero{box-shadow:none}
+}
+/* ============ БАЗА / ТЕМЫ ============ */
+*{box-sizing:border-box}
+html,body{margin:0}
+:root{
+--bg0:#0b1020; --bg1:#131a2d;
+--card:rgba(16,24,38,.55); --card2:rgba(20,30,48,.7);
+--line:rgba(120,190,255,.14); --line2:rgba(120,190,255,.28);
+--text:#E8F0FF; --muted:#8CA3C3;
+--cyan:#6de4ff; --teal:#4fd8e0; --gold:#6de4ff; --silver:#c9d6e8;
+--up:#62e6a8; --down:#ff7d9b;
+--acc:var(--cyan); --acc2:var(--teal);
+--r:20px;
+--shadow:0 18px 50px rgba(0,0,0,.45);
+}
+[data-theme="light"]{
+--bg0:#EDF3FB; --bg1:#F7FAFF;
+--card:rgba(255,255,255,.72); --card2:rgba(255,255,255,.9);
+--line:rgba(11,21,38,.12); --line2:rgba(11,21,38,.25);
+--text:#0B1526; --muted:#5B7191; --gold:#0a8fb0; --shadow:0 18px 40px rgba(30,60,110,.15);
+}
+[data-theme="gold"]{ --gold:#ffd166; --acc:var(--gold); --acc2:#FFDE8A; --cyan:var(--gold); --teal:#FFDE8A; }
+[hidden]{display:none!important}
+body{
+font-family:'Manrope',system-ui,sans-serif; color:var(--text);
+background:
+radial-gradient(1000px 460px at 85% -10%, rgba(109,228,255,.10), transparent 60%),
+radial-gradient(800px 420px at -10% 20%, rgba(109,228,255,.05), transparent 55%),
+linear-gradient(180deg,var(--bg1),var(--bg0) 60%);
+min-height:100vh; overflow-x:hidden;
+}
+h1,h2,h3,.logo b,.heroTitle{font-family:'Unbounded','Manrope',sans-serif}
+::selection{background:var(--acc);color:#04252b}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:99px}
+a{color:var(--acc)}
+button{font-family:inherit}
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+#cursorGlow{position:fixed;z-index:1;width:340px;height:340px;border-radius:50%;pointer-events:none;
+background:radial-gradient(circle, rgba(109,228,255,.13), transparent 65%);transform:translate(-50%,-50%);mix-blend-mode:screen}
+@media(pointer:coarse){#cursorGlow{display:none}}
+/* ============ ТИКЕР ============ */
+.ticker{position:relative;z-index:5;overflow:hidden;border-bottom:1px solid var(--line);background:rgba(11,15,20,.6);backdrop-filter:blur(8px)}
+[data-theme="light"] .ticker{background:rgba(255,255,255,.6)}
+.tickerTrack{display:flex;gap:34px;width:max-content;padding:7px 0;animation:tick 42s linear infinite;font-size:12px;font-weight:700;color:var(--muted)}
+.tickerTrack:hover{animation-play-state:paused}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.tk b{color:var(--text)} .tk .up{color:var(--up)} .tk .down{color:var(--down)}
+.tk .p{color:var(--gold)}
+/* ============ ШАПКА ============ */
+header{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;padding:12px 18px;
+background:color-mix(in srgb, var(--bg0) 70%, transparent);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:10px;cursor:pointer}
+.logo svg{filter:drop-shadow(0 0 10px rgba(109,228,255,.6))}
+.logo b{font-size:17px;letter-spacing:.14em;background:linear-gradient(90deg,var(--silver),var(--acc));-webkit-background-clip:text;background-clip:text;color:transparent}
+.searchWrap{position:relative;flex:1;max-width:520px;margin-left:auto}
+#globalSearch{width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;color:var(--text);
+padding:11px 40px 11px 40px;font-size:14px;font-family:inherit;outline:none;transition:.2s;backdrop-filter:blur(8px)}
+#globalSearch:focus{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 22%,transparent),0 0 24px color-mix(in srgb,var(--acc) 25%,transparent)}
+.searchWrap .sIcon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.searchWrap kbd{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 6px}
+#suggestBox{position:absolute;top:calc(100% + 8px);left:0;right:0;z-index:60;background:var(--card2);backdrop-filter:blur(20px);
+border:1px solid var(--line2);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+#suggestBox div{display:flex;gap:10px;align-items:center;padding:10px 12px;cursor:pointer;font-size:13px}
+#suggestBox div:hover,#suggestBox div.on{background:color-mix(in srgb,var(--acc) 14%,transparent)}
+#suggestBox small{color:var(--muted);margin-left:auto}
+.iconBtn{position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:13px;border:1px solid var(--line);
+background:var(--card);color:var(--muted);cursor:pointer;transition:.2s;backdrop-filter:blur(8px)}
+.iconBtn:hover{color:var(--acc);border-color:var(--acc);box-shadow:0 0 18px color-mix(in srgb,var(--acc) 30%,transparent)}
+.badgeDot{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:99px;background:var(--gold);color:#06202b;font-size:10px;font-weight:800;display:grid;place-items:center;padding:0 4px}
+.chipApi{font-size:11px;font-weight:800;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:6px 11px}
+.chipApi.ok{color:var(--up);border-color:color-mix(in srgb,var(--up) 40%,transparent)}
+.chipApi.bad{color:var(--down);border-color:color-mix(in srgb,var(--down) 40%,transparent)}
+.dropWrap{position:relative}
+.drop{position:absolute;right:0;top:calc(100% + 10px);width:310px;z-index:70;background:var(--card2);backdrop-filter:blur(20px);
+border:1px solid var(--line2);border-radius:16px;padding:10px;box-shadow:var(--shadow);animation:pop .18s ease}
+@keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1}}
+.dropHead{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;padding:4px 6px 8px}
+.linkBtn{background:none;border:none;color:var(--acc);font-size:11px;font-weight:800;cursor:pointer}
+#notifList{list-style:none;margin:0;padding:0;max-height:300px;overflow:auto;display:grid;gap:6px}
+#notifList li{display:flex;gap:9px;padding:9px 10px;border-radius:12px;background:var(--card);font-size:12px;border:1px solid transparent}
+#notifList li.unread{border-color:color-mix(in srgb,var(--gold) 45%,transparent)}
+#notifList .nDot{flex:none;width:8px;height:8px;border-radius:50%;margin-top:4px;background:var(--acc)}
+#notifList b{display:block} #notifList small{color:var(--muted)}
+.profRow{display:flex;gap:10px;align-items:center;padding:6px;margin-bottom:8px}
+.profRow img,.avaBig{width:46px;height:46px;border-radius:14px;object-fit:cover;border:1px solid var(--line2)}
+.profRow b{display:block;font-size:14px}
+/* ============ ВКЛАДКИ ============ */
+.tabs{position:relative;z-index:5;display:flex;gap:6px;max-width:1240px;margin:0 auto;padding:14px 18px 0;overflow-x:auto}
+.tab{position:relative;background:none;border:none;color:var(--muted);font-size:13px;font-weight:800;padding:11px 15px;cursor:pointer;transition:.2s;white-space:nowrap}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--text)}
+.tab.on::after{content:'';position:absolute;left:12px;right:12px;bottom:2px;height:3px;border-radius:99px;
+background:linear-gradient(90deg,var(--acc),var(--acc2));box-shadow:0 0 14px var(--acc)}
+.tab .cnt{display:inline-grid;place-items:center;min-width:17px;height:17px;border-radius:99px;background:color-mix(in srgb,var(--gold) 25%,transparent);color:var(--gold);font-size:10px;padding:0 4px;margin-left:5px}
+main{position:relative;z-index:2;max-width:1240px;margin:0 auto;padding:18px 18px 46px}
+.view{animation:viewIn .45s ease both}
+@keyframes viewIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+/* ============ КАРТОЧКИ / СТЕКЛО ============ */
+.gcard{background:var(--card);border:1px solid var(--line);border-radius:var(--r);backdrop-filter:blur(14px);box-shadow:var(--shadow);transition:.25s;content-visibility:auto;contain-intrinsic-size:auto 263px}
+.gcard:hover{border-color:var(--line2);transform:translateY(-3px);box-shadow:var(--shadow),0 0 30px color-mix(in srgb,var(--acc) 14%,transparent)}
+.pad{padding:18px}
+.label{font-size:11px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:13px;padding:10px 16px;font-size:13px;font-weight:800;cursor:pointer;transition:.2s;backdrop-filter:blur(8px)}
+.btn:hover{border-color:var(--acc);color:var(--acc);box-shadow:0 0 18px color-mix(in srgb,var(--acc) 25%,transparent);transform:translateY(-1px)}
+.btn.primary{border:none;background:linear-gradient(90deg,var(--acc),var(--acc2));color:#04252b;box-shadow:0 8px 24px color-mix(in srgb,var(--acc) 35%,transparent)}
+.btn.primary:hover{color:#04252b;filter:brightness(1.1)}
+.btn.sm{padding:7px 12px;font-size:12px;border-radius:10px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;transition:.2s}
+.chip.on{color:#04252b;background:linear-gradient(90deg,var(--acc),var(--acc2));border-color:transparent;box-shadow:0 0 18px color-mix(in srgb,var(--acc) 40%,transparent)}
+select,input[type=number],input[type=text]{background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:12px;padding:10px 12px;font-size:14px;font-family:inherit;outline:none;transition:.2s}
+select:focus,input:focus{border-color:var(--acc)}
+/* ============ HERO КАРУСЕЛЬ ============ */
+.hero{position:relative;overflow:hidden;border-radius:26px;border:1px solid var(--line2);margin-bottom:18px;min-height:270px;box-shadow:var(--shadow)}
+.heroSlide{position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:18px;padding:26px 30px;opacity:0;transition:opacity .8s ease;pointer-events:none}
+.heroSlide.on{opacity:1;pointer-events:auto}
+.heroSlide::before{content:'';position:absolute;inset:0;background:linear-gradient(120deg,rgba(11,15,20,.92) 30%,rgba(11,15,20,.35));z-index:1}
+.heroSlide img{position:absolute;right:-40px;top:50%;transform:translateY(-50%);width:62%;height:130%;object-fit:cover;opacity:.85;filter:saturate(1.1)}
+.heroTxt{position:relative;z-index:2}
+.heroTag{display:inline-flex;gap:7px;align-items:center;font-size:11px;font-weight:800;color:var(--gold);border:1px solid color-mix(in srgb,var(--gold) 45%,transparent);border-radius:999px;padding:6px 12px;margin-bottom:12px}
+.heroTitle{margin:0 0 10px;font-size:clamp(22px,4vw,40px);line-height:1.12}
+.heroTitle span{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.heroSub{color:var(--muted);font-size:14px;max-width:440px;margin:0 0 16px;line-height:1.6}
+.heroPrice{display:inline-flex;align-items:center;gap:8px;font-weight:800;color:var(--gold);font-size:18px}
+.heroNav{position:absolute;z-index:3;bottom:16px;right:20px;display:flex;gap:8px}
+.heroNav button{width:34px;height:34px;border-radius:11px;border:1px solid var(--line2);background:rgba(11,15,20,.5);color:var(--text);cursor:pointer;backdrop-filter:blur(6px)}
+.heroNav button:hover{color:var(--acc);border-color:var(--acc)}
+.heroDots{position:absolute;z-index:3;bottom:22px;left:30px;display:flex;gap:7px}
+.heroDots i{width:8px;height:8px;border-radius:99px;background:var(--line2);cursor:pointer;transition:.3s}
+.heroDots i.on{width:22px;background:linear-gradient(90deg,var(--acc),var(--acc2));box-shadow:0 0 10px var(--acc)}
+/* ============ РЫНОК ============ */
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.toolbar .sp{flex:1}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.pcard{position:relative;display:flex;flex-direction:column;gap:10px;padding:14px;cursor:pointer;overflow:hidden}
+.pcard .art{height:110px;border-radius:14px;border:1px solid var(--line);display:grid;place-items:center;font-size:38px;
+background:radial-gradient(120% 120% at 20% 10%, color-mix(in srgb,var(--acc) 16%,transparent), transparent 55%),var(--bg1)}
+.pcard b{font-size:14px}
+.pcard .en{color:var(--muted);font-size:12px}
+.prow{display:flex;align-items:center;gap:8px}
+.priceP{color:var(--gold);font-weight:800;font-size:16px}
+.chg{font-size:11px;font-weight:800;border-radius:8px;padding:3px 7px}
+.chg.up{color:var(--up);background:color-mix(in srgb,var(--up) 14%,transparent)}
+.chg.down{color:var(--down);background:color-mix(in srgb,var(--down) 14%,transparent)}
+.vol{color:var(--muted);font-size:11px;margin-left:auto}
+.starBtn{margin-left:auto;flex:none;width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:none;color:var(--muted);cursor:pointer;display:grid;place-items:center;transition:.2s}
+.starBtn:hover{color:var(--gold);border-color:var(--gold)}
+.starBtn.on{color:var(--gold);border-color:var(--gold);background:color-mix(in srgb,var(--gold) 14%,transparent);box-shadow:0 0 14px color-mix(in srgb,var(--gold) 30%,transparent)}
+.skel{position:relative;overflow:hidden;background:rgba(255,255,255,.05);border-radius:10px}
+.skel::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.09),transparent);animation:shine 1.1s infinite}
+@keyframes shine{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+/* ============ ПРЕДМЕТ ============ */
+.itHead{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.itArt{width:86px;height:86px;border-radius:18px;border:1px solid var(--line2);display:grid;place-items:center;font-size:40px;
+background:radial-gradient(120% 120% at 25% 15%, color-mix(in srgb,var(--acc) 20%,transparent), transparent 60%),var(--bg1);box-shadow:0 0 30px color-mix(in srgb,var(--acc) 18%,transparent)}
+.itName{font-size:22px;margin:0}
+.badge{font-size:11px;font-weight:800;border-radius:999px;padding:6px 11px}
+.b-cyan{color:var(--acc);background:color-mix(in srgb,var(--acc) 13%,transparent)}
+.b-gold{color:var(--gold);background:color-mix(in srgb,var(--gold) 14%,transparent)}
+.statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.stat{padding:13px 15px}
+.stat small{color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px}
+.stat b{display:block;font-size:19px;margin-top:5px}
+.stat .gold{color:var(--gold)}
+.duo{display:grid;grid-template-columns:1.4fr 1fr;gap:14px}
+@media(max-width:900px){.duo{grid-template-columns:1fr}.heroSlide{grid-template-columns:1fr}.heroSlide img{opacity:.35}}
+.dial{width:110px;height:110px;border-radius:50%;background:conic-gradient(var(--acc) 0deg,rgba(255,255,255,.08) 0);flex:none;transition:background .8s}
+.dialIn{margin:9px;width:92px;height:92px;border-radius:50%;background:var(--bg1);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.dialIn b{font-size:26px}
+.bar{height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:99px;transition:width .8s}
+.periodBtns{display:flex;gap:6px}
+canvas.chart{width:100%!important;height:260px!important}
+.tray{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tray .tItem{display:flex;gap:7px;align-items:center;border:1px solid var(--line2);border-radius:12px;padding:6px 9px;font-size:12px;font-weight:700}
+.tray .tItem button{background:none;border:none;color:var(--down);cursor:pointer;font-weight:800}
+.simRow{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+/* ============ ДАШБОРД / РЕЙТИНГ ============ */
+.dashHead{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.xpWrap{flex:1;min-width:220px}
+.lvl{font-family:'Unbounded';font-size:15px;color:var(--gold)}
+.row{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:13px;background:var(--card);border:1px solid var(--line);font-size:13px}
+.row + .row{margin-top:8px}
+.medal{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;font-weight:800;font-size:14px}
+.m1{background:linear-gradient(135deg,#F5C044,#FFDE8A);color:#241a04}
+.m2{background:linear-gradient(135deg,#C9D6E8,#8CA3C3);color:#0B1526}
+.m3{background:linear-gradient(135deg,#B0793D,#8a5a2a);color:#fff}
+.mN{background:var(--card2);color:var(--muted)}
+.meRow{border-color:var(--gold)!important;box-shadow:0 0 20px color-mix(in srgb,var(--gold) 20%,transparent)}
+.task .tBar{flex:1}
+.badgeIco{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:14px;font-size:20px;border:1px solid var(--line2);background:var(--card)}
+.badgeIco.lock{opacity:.35;filter:grayscale(1)}
+/* ============ КАЛЬКУЛЯТОР / ТИЕР ============ */
+.calcGrid{display:grid;grid-template-columns:1fr 1.2fr;gap:14px}
+@media(max-width:900px){.calcGrid{grid-template-columns:1fr}}
+.cOut{font-family:'Unbounded';font-size:30px;color:var(--gold);text-shadow:0 0 26px color-mix(in srgb,var(--gold) 45%,transparent)}
+.tierRow{display:flex;gap:10px;align-items:center}
+.tierTag{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-family:'Unbounded';font-size:15px}
+.tS{background:linear-gradient(135deg,var(--gold),var(--acc2));color:#06202b;box-shadow:0 0 18px color-mix(in srgb,var(--gold) 50%,transparent)}
+.tA{background:color-mix(in srgb,var(--up) 25%,transparent);color:var(--up)}
+.tB{background:color-mix(in srgb,var(--acc) 22%,transparent);color:var(--acc)}
+.tC{background:color-mix(in srgb,var(--down) 20%,transparent);color:var(--down)}
+.mBar{flex:1;height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.mBar i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),var(--gold));border-radius:99px}
+/* ============ ОВЕРЛЕИ ============ */
+.overlay{position:fixed;inset:0;z-index:90;background:rgba(4,7,11,.62);backdrop-filter:blur(6px);display:flex;justify-content:center;align-items:center;padding:16px}
+.overlay.pal{align-items:flex-start;padding-top:11vh}
+.modal{width:min(520px,94vw);max-height:86vh;overflow:auto;padding:20px;display:grid;gap:14px}
+.modal h3{margin:0;font-size:16px}
+.swRow{display:flex;gap:8px;flex-wrap:wrap}
+.avaOpt{width:44px;height:44px;border-radius:14px;border:2px solid transparent;cursor:pointer;overflow:hidden;display:grid;place-items:center;font-size:20px;background:var(--card2)}
+.avaOpt.on{border-color:var(--acc);box-shadow:0 0 16px color-mix(in srgb,var(--acc) 40%,transparent)}
+.tgl{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;font-weight:700}
+.tgl input{accent-color:var(--acc);width:18px;height:18px}
+.palBox{width:min(620px,94vw);padding:12px}
+#palList{list-style:none;margin:8px 0 0;padding:0;max-height:320px;overflow:auto}
+.palItem{display:flex;gap:10px;align-items:center;padding:11px 12px;border-radius:12px;cursor:pointer;font-size:14px}
+.palItem.active{background:color-mix(in srgb,var(--acc) 16%,transparent)}
+.palType{flex:none;font-size:10px;font-weight:800;text-transform:uppercase;color:var(--acc);border:1px solid color-mix(in srgb,var(--acc) 45%,transparent);border-radius:6px;padding:3px 7px}
+#toastWrap{position:fixed;top:64px;right:14px;z-index:120;display:grid;gap:8px;justify-items:end}
+.toast{display:flex;gap:10px;align-items:center;max-width:340px;padding:12px 16px;border-radius:14px;border:1px solid var(--line2);
+background:var(--card2);backdrop-filter:blur(18px);font-size:13px;font-weight:700;box-shadow:var(--shadow);animation:pop .25s ease}
+.toast::before{content:'';width:8px;height:8px;border-radius:50%;flex:none}
+.toast.success::before{background:var(--up)} .toast.error::before{background:var(--down)} .toast.info::before{background:var(--acc)} .toast.gold::before{background:var(--gold)}
+.toast.out{opacity:0;transform:translateX(14px);transition:.25s}
+footer{position:relative;z-index:2;border-top:1px solid var(--line);padding:26px 18px;color:var(--muted);font-size:12px;display:flex;gap:14px;flex-wrap:wrap;justify-content:space-between;max-width:1240px;margin:0 auto}
+[data-tip]{position:relative}
+[data-tip]:hover::after{content:attr(data-tip);position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);z-index:95;
+background:var(--bg1);border:1px solid var(--line2);border-radius:10px;padding:8px 11px;font-size:11px;font-weight:700;white-space:pre-line;width:max-content;max-width:230px;box-shadow:var(--shadow);pointer-events:none}
+.empty{padding:40px 20px;text-align:center;display:grid;justify-items:center;gap:8px;color:var(--muted)}
+.empty .eIco{font-size:40px}
+.imageFallback{display:grid;place-items:center;width:100%;height:100%;color:var(--acc);font-size:34px;opacity:.8}
+.pcard .art{overflow:hidden;contain:layout paint}
+@media(max-width:760px){.gcard,.pcard,.drop,.modal,.overlay,header,.ticker,#globalSearch,#suggestBox{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}.gcard{background:var(--card2)}.pcard{contain:layout paint}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}.view,.tickerTrack{animation:none!important}}
+.pcard .art{position:relative;overflow:hidden;contain:layout paint}
+.pcard .art img,.itArt img{display:block;width:auto;height:auto;max-width:86%;max-height:86%;object-fit:contain;object-position:center}
+.pcard .art img{min-width:0;min-height:0}
+.imageFallback{width:100%;height:100%;display:grid;place-items:center;color:var(--acc);font-size:34px;opacity:.8}
+@media(max-width:760px){.pcard .art img{max-width:78%;max-height:78%}.itArt img{max-width:84%;max-height:84%}}
+.imageLoading{width:52px;height:52px;display:block;border-radius:14px;background:linear-gradient(110deg,var(--bg1) 30%,color-mix(in srgb,var(--acc) 18%,var(--bg1)) 50%,var(--bg1) 70%);background-size:200% 100%;animation:imageShimmer 1.1s linear infinite}
+@keyframes imageShimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+/* ============ ФИКС ШАПКИ (v4) ============ */
+/* Правила в блоке "ШАПКА" (~строка 165) не в media-запросе и в файле идут ПОСЛЕ мобильных
+   фиксов v2/v3 (~строки 13-63), поэтому по каскаду побеждают даже на мобильных: header
+   остаётся flex вместо grid, а .dropWrap/.drop — position:relative/width:310px вместо
+   мобильного static/auto. Из-за этого шапка наезжает сама на себя, а панель уведомлений
+   уходит за правый край экрана. Этот блок — в самом конце файла, побеждает всегда. */
+@media (max-width:760px){
+header{display:grid;grid-template-columns:1fr auto auto;grid-template-rows:auto auto;gap:10px;padding:10px 12px;flex-wrap:nowrap}
+.logo{grid-column:1;grid-row:1;min-width:0}
+.chipApi{display:none}
+header>div:nth-of-type(3){grid-column:2;grid-row:1}
+header>div:nth-of-type(4){grid-column:3;grid-row:1}
+.searchWrap{grid-column:1/-1;grid-row:2;max-width:none;margin:0;flex:none;min-width:0}
+.iconBtn{width:38px;height:38px}
+.dropWrap{position:static}
+.drop{position:fixed;left:12px;right:12px;width:auto;top:calc(var(--header-h,108px) + 8px);max-height:calc(100vh - var(--header-h,108px) - 24px);overflow:auto;z-index:100}
+/* .pcard .art:height тоже проигрывал каскад той же причине — базовое unconditional
+   правило (~строка 250, height:110px) идёт позже строк 67/87 и побеждало на мобильных.
+   Восстанавливаем те же значения здесь, где они гарантированно побеждают. */
+.pcard .art{height:86px}
+}
+@media (max-width:400px){
+.pcard .art{height:74px}
+}
+#itAdvice{border-color:color-mix(in srgb,var(--acc) 28%,var(--line))}
+#itAdviceText{display:block;margin-top:7px;line-height:1.5}
+#itAdviceMeta{line-height:1.6;text-transform:none;letter-spacing:0}
+#heroBox{display:none}
+.wspTabs{display:flex;gap:6px}
+.wspRow{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:8px 12px;margin-top:6px;background:var(--card2);border:1px solid var(--line);border-radius:12px;color:var(--text);font:inherit;text-align:left;cursor:pointer;transition:border-color .2s,transform .15s}
+.wspRow:hover{border-color:var(--line2)}
+.wspRow:active{transform:scale(.99)}
+.wspRow .wspName{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.wspRow .wspQty{color:var(--muted);font-size:12px}
+.wspRow .wspPrice{color:var(--gold);font-weight:800;font-variant-numeric:tabular-nums}
+.wspRow .wspCopy{color:var(--acc);font-size:12px;white-space:nowrap}
+.wspDot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.wspDot.on{background:var(--up);box-shadow:0 0 8px var(--up)}
+.jForm{display:flex;flex-wrap:wrap;gap:8px}
+.jIn{flex:2;min-width:150px;min-height:44px;padding:8px 12px;background:var(--card2);border:1px solid var(--line);border-radius:12px;color:var(--text);font:inherit}
+.jIn.jNum{flex:1;min-width:96px}
+.jIn:focus{outline:none;border-color:var(--acc)}
+.jRow{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.jRow:first-child{border-top:none}
+.jInfo{flex:1;min-width:0;display:grid;gap:2px}
+.jInfo b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jVal{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* UI polish v3 */
+.priceP,.stat b,.chg,.vol,#itPrice,.ticker,.wspPrice,.jVal{font-variant-numeric:tabular-nums}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.pcard .starBtn{position:absolute;top:24px;right:24px;margin:0;width:32px;height:32px;z-index:2;background:color-mix(in srgb,var(--bg0) 65%,transparent)}
+.itActions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+@media(hover:hover){.pcard:hover{transform:translateY(-3px);border-color:var(--line2);box-shadow:var(--shadow),0 0 22px color-mix(in srgb,var(--acc) 14%,transparent)}}
+@media(max-width:760px){
+.grid{grid-template-columns:1fr;gap:8px}
+.pcard{display:grid;grid-template-columns:64px minmax(0,1fr) auto;grid-template-areas:"art name star" "art en star" "art prow prow";gap:2px 12px;align-items:center;padding:10px 12px}
+.pcard .art{grid-area:art;width:64px;height:64px;border-radius:12px;font-size:26px}
+.pcard b{grid-area:name;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcard .en{grid-area:en;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcard .prow{grid-area:prow;flex-wrap:wrap;margin-top:4px}
+.pcard .starBtn{position:static;grid-area:star;align-self:center;width:38px;height:38px;background:none}
+#filterChips{display:flex;flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;margin:0 -12px;padding:2px 12px 6px}
+#filterChips::-webkit-scrollbar{display:none}
+#filterChips .chip{flex:none}
+.tabs{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 20px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 20px),transparent)}
+.itActions{display:grid;grid-template-columns:44px 1fr 1fr;width:100%}
+.itActions .btn{min-height:44px;justify-content:center;white-space:nowrap}
+.itActions .starBtn{width:44px;height:44px}
+#itAiBtn{grid-column:1/3}
+}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div id="cursorGlow"></div>
+<!-- бегущий тикер цен -->
+<div class="ticker"><div class="tickerTrack" id="tickerTrack"></div></div>
+<header>
+<div class="logo" id="logoBtn">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="url(#lg1)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+<defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6de4ff"/><stop offset="1" stop-color="#4fd8e0"/></linearGradient></defs>
+<path d="M3 12h4l3-8 4 16 3-8h4"/>
+</svg>
+<b>MARKETPULSE</b>
+</div>
+<div class="searchWrap">
+<span class="sIcon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>
+<input id="globalSearch" type="search" placeholder="Поиск: предмет на английском или русском…" autocomplete="off">
+<kbd>/</kbd>
+<div id="suggestBox" hidden></div>
+</div>
+<span class="chipApi" id="apiChip">API: …</span>
+<div class="dropWrap">
+<button class="iconBtn" id="bellBtn" data-tip="Уведомления">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 9a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/></svg>
+<span class="badgeDot" id="bellBadge" hidden>0</span>
+</button>
+<div class="drop" id="notifPanel" hidden>
+<div class="dropHead">Уведомления <button class="linkBtn" id="notifClear">очистить</button></div>
+<ul id="notifList"></ul>
+</div>
+</div>
+<div class="dropWrap">
+<button class="iconBtn" id="profBtn" data-tip="Профиль"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/></svg></button>
+<div class="drop" id="profPanel" hidden>
+<div class="profRow"><img id="profAva" alt=""><div><b id="profName">Оператор</b><small class="label" id="profLvl">ур. 1</small></div></div>
+<button class="btn sm w100" id="openDashBtn" style="width:100%">Дашборд</button>
+<button class="btn sm" id="openSetBtn" style="width:100%;margin-top:8px">Настройки профиля</button>
+</div>
+</div>
+</header>
+<nav class="tabs" id="tabsNav">
+<button class="tab on" data-view="market">Рынок</button>
+<button class="tab" data-view="dash">Дашборд</button>
+<button class="tab" data-view="rating">Рейтинг</button>
+<button class="tab" data-view="calc">Калькулятор</button>
+<button class="tab" data-view="relics">Реликвии</button>
+<button class="tab" data-view="arb">Арбитраж</button>
+<button class="tab" data-view="journal">Журнал</button>
+<button class="tab" data-view="favs">Избранное <span class="cnt" id="favCnt">0</span></button>
+</nav>
+<main>
+<!-- ================= РЫНОК ================= -->
+<section class="view" id="view-market">
+<div class="hero" id="heroBox">
+<div class="heroDots" id="heroDots"></div>
+<div class="heroNav"><button id="heroPrev">‹</button><button id="heroNext">›</button></div>
+</div>
+<div class="toolbar">
+<div id="filterChips" style="display:flex;gap:7px;flex-wrap:wrap">
+<button class="chip on" data-cat="all">Все</button>
+<button class="chip" data-cat="warframes">Варфреймы</button>
+<button class="chip" data-cat="weapons">Оружие</button>
+<button class="chip" data-cat="mods">Моды</button>
+<button class="chip" data-cat="relics">Реликвии</button>
+<button class="chip" data-cat="resources">Ресурсы</button>
+<button class="chip" data-cat="arcanes">Арканы</button>
+<button class="chip" data-cat="other">Остальное</button>
+<button class="chip" data-cat="prime">Prime</button>
+</div>
+<div class="sp"></div>
+<select id="sortSel">
+<option value="profit">По прибыли</option>
+<option value="priceDesc">Цена ↓</option>
+<option value="priceAsc">Цена ↑</option>
+<option value="volume">По объёму</option>
+<option value="change">По изменению 24ч</option>
+</select>
+<button class="btn sm" id="csvBtn" data-tip="Экспорт текущей выборки в CSV"> CSV</button>
+</div>
+<div class="grid" id="marketGrid"></div>
+<div style="display:flex;justify-content:center;margin-top:16px"><button class="btn primary" id="marketMore">Показать ещё</button></div>
+</section>
+<!-- ================= ПРЕДМЕТ ================= -->
+<section class="view" id="view-item" hidden>
+<button class="btn sm" id="backBtn" style="margin-bottom:14px">← На рынок</button>
+<div class="gcard pad itHead">
+<div class="itArt" id="itArt">◆</div>
+<div style="flex:1;min-width:200px">
+<h2 class="itName" id="itName">—</h2>
+<div class="en" id="itSub" style="color:var(--muted);font-size:13px">—</div>
+<div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap">
+<span class="badge b-cyan" id="itCat">—</span>
+<span class="badge b-gold" id="itFarm">—</span>
+</div>
+</div>
+<div style="text-align:right">
+<div class="priceP" id="itPrice" style="font-size:26px">—</div>
+<div class="chg up" id="itChange">—</div>
+</div>
+<div class="itActions">
+<button class="starBtn" id="itFavBtn" data-tip="В избранное">★</button>
+<button class="btn sm" id="itAlertBtn" data-tip="Ценовой алерт">🔔 Алерт</button>
+<button class="btn sm" id="itCompareBtn" data-tip="Добавить к сравнению (до 3)">⚖ Сравнить</button>
+<button class="btn sm" id="itAiBtn" data-tip="Спросить ИИ об этом предмете">🤖 Спросить ИИ</button>
+<button class="btn sm" id="itJournalBtn" data-tip="Записать сделку в журнал">📒 В журнал</button>
+</div>
+</div>
+<div class="statGrid" id="itStats"></div>
+<div class="duo">
+<div class="gcard pad">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+<h3 style="margin:0;font-size:14px">История цены и объёмы</h3>
+<div class="periodBtns">
+<button class="chip on" data-period="24h">24ч</button>
+<button class="chip" data-period="7d">7д</button>
+<button class="chip" data-period="30d">30д</button>
+</div>
+</div>
+<canvas id="chartPrice" class="chart"></canvas>
+<div class="label" style="margin-top:6px">Модель на основе текущей цены, не архив реальных сделок</div>
+</div>
+<div class="gcard pad">
+<h3 style="margin:0 0 12px;font-size:14px">Рейтинг спроса</h3>
+<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+<div class="dial" id="itDial"><div class="dialIn"><b id="itScore">—</b><span class="label">общий score</span></div></div>
+<div style="flex:1;min-width:170px;display:grid;gap:10px">
+<div><div class="label" style="margin-bottom:5px">Спрос</div><div class="bar"><i id="bDemand"></i></div></div>
+<div><div class="label" style="margin-bottom:5px">Глубина рынка</div><div class="bar"><i id="bSupply"></i></div></div>
+<div><div class="label" style="margin-bottom:5px">Шанс окупа</div><div class="bar"><i id="bPayback"></i></div></div>
+</div>
+</div>
+<div id="itVerdict" style="margin-top:12px;font-weight:800">—</div>
+<div id="itNote" class="label" style="margin-top:6px"></div>
+<div id="itAdvice" class="gcard" style="margin-top:12px;padding:12px">
+<div class="label" id="itAdviceLabel">Аналитический помощник</div>
+<b id="itAdviceText">Загрузка рекомендации…</b>
+<div id="itAdviceMeta" class="label" style="margin-top:7px"></div>
+</div>
+</div>
+</div>
+<div class="gcard pad" style="margin-top:14px">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+<h3 style="margin:0;font-size:14px">Живые предложения</h3>
+<div class="wspTabs"><button class="chip on" data-offers="sell">Продают</button><button class="chip" data-offers="buy">Покупают</button></div>
+</div>
+<div id="itOffersList"></div>
+<div class="label" style="margin-top:8px">Игроки в сети. Нажми на строку, и сообщение /w для игры скопируется.</div>
+</div>
+<div class="gcard pad" style="margin-top:14px">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+<h3 style="margin:0;font-size:14px">Сравнение предметов (до 3)</h3>
+<button class="btn sm" id="csvItemBtn">⬇ CSV истории</button>
+</div>
+<div class="tray" id="compareTray" style="margin:10px 0"></div>
+<canvas id="chartCompare" class="chart"></canvas>
+</div>
+<h3 style="font-size:14px;margin:18px 0 10px">Похожие товары</h3>
+<div class="simRow" id="similarRow"></div>
+</section>
+<!-- ================= ДАШБОРД ================= -->
+<section class="view" id="view-dash" hidden>
+<div class="gcard pad dashHead">
+<img class="avaBig" id="dAvatar" alt="">
+<div>
+<h2 style="margin:0;font-size:20px" id="dName">—</h2>
+<div class="label" id="dStreak"> стрик: 1 дн.</div>
+</div>
+<div class="xpWrap">
+<div style="display:flex;justify-content:space-between"><span class="lvl" id="dLevel">Уровень 1</span><span class="label" id="dXpText">0 XP</span></div>
+<div class="bar" style="margin-top:7px;height:10px"><i id="dXpBar"></i></div>
+</div>
+</div>
+<div class="gcard pad" style="margin-top:14px">
+<h3 style="margin:0 0 10px;font-size:14px">📅 Дневные задания <span class="label" id="taskDate"></span></h3>
+<div id="tasksList"></div>
+</div>
+<div class="duo" style="margin-top:14px">
+<div class="gcard pad">
+<h3 style="margin:0 0 10px;font-size:14px">Активность за неделю</h3>
+<canvas id="chartActivity" class="chart"></canvas>
+</div>
+<div class="gcard pad">
+<h3 style="margin:0 0 10px;font-size:14px">Что ты ищешь чаще всего</h3>
+<div id="topQueries"></div>
+<h3 style="margin:14px 0 10px;font-size:14px">История сделок</h3>
+<div id="dealsList"></div>
+</div>
+</div>
+<div class="gcard pad" style="margin-top:14px">
+<h3 style="margin:0 0 10px;font-size:14px">🏅 Достижения</h3>
+<div id="badgesRow" style="display:flex;gap:9px;flex-wrap:wrap"></div>
+</div>
+<h3 style="font-size:14px;margin:18px 0 10px">Персональные рекомендации</h3>
+<div class="simRow" id="recsRow"></div>
+</section>
+<!-- ================= РЕЙТИНГ ================= -->
+<section class="view" id="view-rating" hidden>
+<div class="gcard pad">
+<h3 style="margin:0 0 12px;font-size:15px">🏆 Топ операторов по активности</h3>
+<p class="label" style="margin:0 0 12px">Локальный рейтинг активности в этом приложении, не данные сообщества Warframe Market</p>
+<div id="ratingList"></div>
+</div>
+</section>
+<!-- ================= КАЛЬКУЛЯТОР ================= -->
+<section class="view" id="view-calc" hidden>
+<div class="calcGrid">
+<div class="gcard pad">
+<h3 style="margin:0 0 12px;font-size:15px">Платина в час</h3>
+<div class="label" style="margin-bottom:6px">Метод фарма / предмет</div>
+<select id="calcMethod" style="width:100%"></select>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-top:11px">
+<div><div class="label">Цена, p</div><input type="number" id="cPrice" min="1" value="60" style="width:100%"></div>
+<div><div class="label">Минут</div><input type="number" id="cTime" min="1" value="45" style="width:100%"></div>
+<div><div class="label">Кол-во</div><input type="number" id="cQty" min="1" value="1" style="width:100%"></div>
+</div>
+<div style="margin-top:16px" class="label">Результат</div>
+<div class="cOut" id="cOut">—</div>
+<div class="label" id="cPerRun"></div>
+</div>
+<div class="gcard pad">
+<h3 style="margin:0 0 12px;font-size:15px">Сравнение методов · tier-лист «что фармить сейчас»</h3>
+<div id="methodsList"></div>
+</div>
+</div>
+</section>
+<!-- ================= РЕЛИКВИИ ================= -->
+<section class="view" id="view-relics" hidden>
+<div class="toolbar">
+<div id="eraChips" style="display:flex;gap:7px;flex-wrap:wrap">
+<button class="chip on" data-era="all">Все эры</button>
+<button class="chip" data-era="Lith">Lith</button>
+<button class="chip" data-era="Meso">Meso</button>
+<button class="chip" data-era="Neo">Neo</button>
+<button class="chip" data-era="Axi">Axi</button>
+<button class="chip" data-era="Requiem">Requiem</button>
+</div>
+</div>
+<div class="grid" id="relicGrid"></div>
+</section>
+<!-- ================= АРБИТРАЖ ================= -->
+<section class="view" id="view-arb" hidden>
+<div class="gcard pad">
+<h3 style="margin:0 0 6px;font-size:15px">⚡ Режим «Арбитраж»</h3>
+<p class="label" style="margin:0 0 12px">Недооценённые ордера: купить дешевле → продать дороже. Маржа считается от медиан.</p>
+<p class="label" style="margin:0 0 12px">Демо-оценка по модели (цена покупки не с реальных ордеров), не торговый сигнал</p>
+<div id="arbList"></div>
+</div>
+</section>
+<!-- ================= ИЗБРАННОЕ ================= -->
+<section class="view" id="view-favs" hidden>
+<div class="grid" id="favGrid"></div>
+<div class="gcard empty" id="favEmpty">
+<div class="eIco">★</div>
+<b>В избранном пусто</b>
+<span>Отмечай предметы звёздочкой — и следи за алертами по ценам.</span>
+</div>
+</section>
+<!-- ================= ЖУРНАЛ ================= -->
+<section class="view" id="view-journal" hidden>
+<div class="gcard pad">
+<h3 style="margin:0 0 4px;font-size:15px">Журнал сделок</h3>
+<div class="label" style="margin-bottom:12px">Записывай покупки и продажи, прибыль в платине считается сама. Данные хранятся только в этом браузере.</div>
+<div class="jForm">
+<input class="jIn" id="jName" placeholder="Предмет" maxlength="60" autocomplete="off">
+<input class="jIn jNum" id="jBuy" type="number" inputmode="decimal" min="0" placeholder="Купил, p">
+<input class="jIn jNum" id="jSell" type="number" inputmode="decimal" min="0" placeholder="Продал, p">
+<input class="jIn jNum" id="jQty" type="number" inputmode="numeric" min="1" value="1" aria-label="Количество">
+<button class="btn" id="jAdd">Добавить</button>
+</div>
+</div>
+<div class="statGrid" id="jStats" style="margin-top:14px"></div>
+<div class="gcard pad" style="margin-top:14px"><div id="jList"></div></div>
+</section>
+</main>
+<footer>
+<span>© 2026 MarketPulse · аналитика, а не копия Warframe.market</span>
+<span>данные: warframe.market API v2 + история сделок · экспорт CSV доступен</span>
+</footer>
+<!-- настройки -->
+<div class="overlay" id="setOverlay" hidden>
+<div class="modal gcard">
+<h3>Настройки профиля</h3>
+<div><div class="label" style="margin-bottom:6px">Имя</div><input type="text" id="setName" maxlength="20" style="width:100%"></div>
+<div><div class="label" style="margin-bottom:6px">Аватар</div><div class="swRow" id="avaRow"></div></div>
+<div><div class="label" style="margin-bottom:6px">Тема</div>
+<div class="swRow">
+<button class="chip" data-settheme="dark">Космос</button>
+<button class="chip" data-settheme="light">Светлая</button>
+<button class="chip" data-settheme="gold">Платина</button>
+</div>
+</div>
+<div class="tgl"><span>🔔 Алерты цен</span><input type="checkbox" id="tgAlerts" checked></div>
+<div class="tgl"><span>📅 Напоминания о заданиях</span><input type="checkbox" id="tgTasks" checked></div>
+<div class="tgl"><span>🔥 Стрики</span><input type="checkbox" id="tgStreaks" checked></div>
+<div style="display:flex;gap:10px;justify-content:flex-end">
+<button class="btn sm" id="setClose">Отмена</button>
+<button class="btn primary sm" id="setSave">Сохранить</button>
+</div>
+</div>
+</div>
+<!-- алерт -->
+<div class="overlay" id="alOverlay" hidden>
+<div class="modal gcard">
+<h3>Ценовой алерт: <span id="alName" style="color:var(--gold)"></span></h3>
+<div class="label" style="margin-bottom:6px">Сообщить, когда цена опустится до (p)</div>
+<input type="number" id="alTarget" min="1" style="width:100%">
+<div style="display:flex;gap:10px;justify-content:flex-end">
+<button class="btn sm" id="alRemove">Убрать</button>
+<button class="btn sm" id="alClose">Отмена</button>
+<button class="btn primary sm" id="alSave">Сохранить</button>
+</div>
+</div>
+</div>
+<!-- ИИ-аналитика -->
+<div class="overlay" id="aiOverlay" hidden>
+<div class="modal gcard">
+<h3>🤖 ИИ-аналитика: <span id="aiItemName" style="color:var(--gold)"></span></h3>
+<div id="aiLoading" class="label">Спрашиваем ИИ…</div>
+<div id="aiError" class="label" style="color:var(--down)" hidden></div>
+<div id="aiResult" hidden>
+<div style="font-weight:800;font-size:16px;margin:6px 0" id="aiVerdict"></div>
+<div id="aiSummary" style="margin-bottom:10px;line-height:1.5"></div>
+<div class="statGrid" style="margin-bottom:10px">
+<div class="gcard stat"><small>Покупать по</small><b id="aiBuyPrice">—</b></div>
+<div class="gcard stat"><small>Продавать по</small><b id="aiSellPrice">—</b></div>
+<div class="gcard stat"><small>Объём</small><b id="aiVolume">—</b></div>
+</div>
+<div class="label" style="margin-bottom:4px">Риски</div>
+<ul id="aiRisks" style="margin:0 0 10px;padding-left:18px"></ul>
+<div class="label" style="margin-bottom:4px">Действие</div>
+<div id="aiAction"></div>
+<div class="label" style="margin-top:10px;opacity:.7" id="aiMeta"></div>
+</div>
+<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
+<button class="btn sm" id="aiClose">Закрыть</button>
+</div>
+</div>
+</div>
+<!-- палитра -->
+<div class="overlay pal" id="palOverlay" hidden>
+<div class="palBox gcard">
+<input id="palInput" placeholder="Команда или предмет…" autocomplete="off" style="width:100%">
+<ul id="palList"></ul>
+</div>
+</div>
+<div id="toastWrap"></div>
+<script>
+(function(){
+'use strict';
+/* ==================== УТИЛИТЫ ==================== */
+var $=function(id){return document.getElementById(id)};
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function imageSrc(src){if(!src){return ''}var value=String(src).trim();if(!value){return ''}var isWarframeImage=value.indexOf('https://warframe.market/')===0||value.indexOf('https://www.warframe.market/')===0||value.indexOf('https://api.warframe.market/')===0;if(isWarframeImage){return '/api/image?src='+encodeURIComponent(value)}return value}
+function imageHTML(src,alt){if(!src){return '<span class="imageFallback">◆</span>'}return '<img src="'+esc(imageSrc(src))+'" data-orig="'+esc(src)+'" alt="'+esc(alt||'')+'" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="imageError(this)"><span class="imageFallback" hidden>◆</span>'}
+function imageError(img){var orig=img.getAttribute('data-orig')||'';console.warn('Не удалось загрузить изображение:',orig||img.src);img.style.display='none';if(img.nextElementSibling){img.nextElementSibling.hidden=false}}
+window.imageError=imageError;
+function imagePlaceholder(){return '<span class="imageLoading" aria-hidden="true"><span></span></span>'}
+function fmt(n){return(n===null||n===undefined||n===''||isNaN(+n))?'—':(+n).toLocaleString('ru-RU')}
+function hasPrice(it){var n=Number(it.price);return Number.isFinite(n)&&n>0}
+function norm(s){return String(s||'').toLowerCase().replace(/ё/g,'е').trim()}
+function hash(s){var h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h)||7}
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;var t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+var store={get:function(k,d){try{var v=localStorage.getItem('mp2_'+k);return v?JSON.parse(v):d}catch(e){return d}},set:function(k,v){try{localStorage.setItem('mp2_'+k,JSON.stringify(v))}catch(e){}}};
+function toast(msg,type){var t=document.createElement('div');t.className='toast '+(type||'info');t.textContent=msg;$('toastWrap').appendChild(t);setTimeout(function(){t.classList.add('out');setTimeout(function(){t.remove()},260)},3600)}
+/* ==================== СОСТОЯНИЕ ==================== */
+var AVATAR_URL='https://image.qwenlm.ai/public_source/7f2d27ed-51f1-4c8b-9137-10cab20e47ec/10183c21a-92ea-45bd-98c5-556776012b72.png';
+var HERO_IMGS=[
+'https://image.qwenlm.ai/public_source/7f2d27ed-51f1-4c8b-9137-10cab20e47ec/1e264afff-ebb2-437d-9af1-762d04f8f6a2.png',
+'https://image.qwenlm.ai/public_source/7f2d27ed-51f1-4c8b-9137-10cab20e47ec/10183c21a-92ea-45bd-98c5-556776012b72.png'
+];
+var profile=store.get('profile',{name:'Оператор',xp:0,avatar:'img',theme:'dark',notif:{alerts:true,tasks:true,streaks:true}});
+profile=profile||{};profile.name=profile.name||'Оператор';profile.xp=Number(profile.xp)||0;profile.avatar=profile.avatar||'img';profile.theme=profile.theme||'dark';profile.notif=Object.assign({alerts:true,tasks:true,streaks:true},profile.notif||{});
+var favs=store.get('favs',[]);
+function isFav(slug){return favs.some(function(f){return f.slug===slug})}
+var alerts=store.get('alerts',{});
+var ach=store.get('ach',[]);
+var daily=store.get('daily',{date:'',searches:0,favs:0,calc:0,claimed:{}});
+var searchesAll=store.get('searches',[]);
+var activity=store.get('activity',[3,5,2,6,4,7,1]);
+var viewedItems=store.get('viewedItems',{});
+var state={view:'market',cat:'all',sort:'profit',slug:null,compare:[],period:'24h',era:'all',apiOnline:false};
+function save(){store.set('profile',profile);store.set('favs',favs);store.set('alerts',alerts);store.set('ach',ach);store.set('daily',daily);store.set('searches',searchesAll);store.set('activity',activity)}
+function today(){return new Date().toISOString().slice(0,10)}
+if(daily.date!==today()){daily={date:today(),searches:0,favs:0,calc:0,claimed:{}};save()}
+function levelOf(xp){return Math.floor(Math.sqrt(xp/50))+1}
+function addXp(n,why){var l0=levelOf(profile.xp);profile.xp+=n;save();var l1=levelOf(profile.xp);if(l1>l0){toast('🎉 Новый уровень: '+l1,'gold');notify('Уровень '+l1,'XP растёт — так держать!','gold')}if(why)toast('+'+n+' XP · '+why,'info');renderDashHead()}
+/* ==================== БАЗА ДАННЫХ (демо + категории) ==================== */
+var CAT_ICON={warframes:'🛡',weapons:'⚔',mods:'🧩',relics:'🏺',resources:'⛏',arcanes:'✨',other:'◆'};
+var CAT_RU={warframes:'Варфреймы',weapons:'Оружие',mods:'Моды',relics:'Реликвии',resources:'Ресурсы',arcanes:'Арканы',other:'Остальное'};
+var DB=[
+{slug:'mirage_prime_set',name:'Mirage Prime Set',nameRu:'Мираж Прайм сет',cat:'warframes',price:385,change:4.2,volume:210,farm:'Реликвии Meso/Neo',timeMin:90},
+{slug:'volt_prime_set',name:'Volt Prime Set',nameRu:'Вольт Прайм сет',cat:'warframes',price:260,change:-2.1,volume:180,farm:'Реликвии Axi/Lith',timeMin:80},
+{slug:'rhino_prime_set',name:'Rhino Prime Set',nameRu:'Рино Прайм сет',cat:'warframes',price:150,change:1.1,volume:140,farm:'Реликвии Lith/Axi',timeMin:70},
+{slug:'trinity_prime_set',name:'Trinity Prime Set',nameRu:'Тринити Прайм сет',cat:'warframes',price:120,change:-4.8,volume:90,farm:'Реликвии Meso',timeMin:70},
+{slug:'wisp_prime_set',name:'Wisp Prime Set',nameRu:'Висп Прайм сет',cat:'warframes',price:410,change:6.5,volume:120,farm:'Реликвии Axi/Neo',timeMin:100},
+{slug:'gara_prime_set',name:'Gara Prime Set',nameRu:'Гара Прайм сет',cat:'warframes',price:230,change:0.4,volume:75,farm:'Реликвии Neo/Meso',timeMin:85},
+{slug:'glaive_prime_blade',name:'Glaive Prime Blade',nameRu:'Клинок Глайва Прайм',cat:'weapons',price:175,change:3.3,volume:160,farm:'Реликвии Axi',timeMin:60},
+{slug:'nikana_prime_set',name:'Nikana Prime Set',nameRu:'Никана Прайм сет',cat:'weapons',price:210,change:2.0,volume:130,farm:'Реликвии Meso',timeMin:75},
+{slug:'rubico_prime_set',name:'Rubico Prime Set',nameRu:'Рубико Прайм сет',cat:'weapons',price:140,change:-1.5,volume:85,farm:'Реликвии Neo',timeMin:65},
+{slug:'tenora_prime_set',name:'Tenora Prime Set',nameRu:'Тенора Прайм сет',cat:'weapons',price:300,change:5.1,volume:70,farm:'Реликвии Axi/Neo',timeMin:90},
+{slug:'kuva_nukor',name:'Kuva Nukor',nameRu:'Кува Нукор',cat:'weapons',price:95,change:-3.2,volume:110,farm:'Лич Кувы / циклия',timeMin:120},
+{slug:'sancti_tigris',name:'Sancti Tigris',nameRu:'Санкти Тигрис',cat:'weapons',price:130,change:0.9,volume:40,farm:'Синдикат: Арбитры',timeMin:150},
+{slug:'blind_rage',name:'Blind Rage',nameRu:'Слепая Ярость',cat:'mods',price:65,change:8.4,volume:240,farm:'Тайник Орокин / Ceres',timeMin:25},
+{slug:'galvanized_scope',name:'Galvanized Scope',nameRu:'Гальванизированный прицел',cat:'mods',price:110,change:2.7,volume:95,farm:'Арбитрации',timeMin:60},
+{slug:'primed_continuity',name:'Primed Continuity',nameRu:'Праймд Непрерывность',cat:'mods',price:85,change:-0.6,volume:60,farm:'Баро Ки-Тир',timeMin:200},
+{slug:'veiled_riven',name:'Veiled Riven (Shotgun)',nameRu:'Скрытый Ривен (дробовик)',cat:'mods',price:550,change:1.8,volume:55,farm:'Циклия / задания',timeMin:180},
+{slug:'hunter_adrenaline',name:'Hunter Adrenaline',nameRu:'Адреналин Охотника',cat:'mods',price:70,change:-2.4,volume:80,farm:'Ночная волна',timeMin:90},
+{slug:'axi_v7',name:'Axi V7 Relic',nameRu:'Реликвия Axi V7',cat:'relics',price:25,change:12.0,volume:300,farm:'Миссии Void T4',timeMin:15},
+{slug:'meso_n10',name:'Meso N10 Relic',nameRu:'Реликвия Meso N10',cat:'relics',price:35,change:5.5,volume:220,farm:'Миссии Void T3',timeMin:15},
+{slug:'lith_m9',name:'Lith M9 Relic',nameRu:'Реликвия Lith M9',cat:'relics',price:18,change:-6.0,volume:260,farm:'Миссии Void T2',timeMin:12},
+{slug:'requiem_i',name:'Requiem I Relic',nameRu:'Реликвия Реквием I',cat:'relics',price:45,change:3.9,volume:90,farm:'Разломы Кувы',timeMin:30},
+{slug:'kuva_res',name:'Kuva',nameRu:'Кува',cat:'resources',price:3,change:1.4,volume:900,farm:'Сифон Кувы / лич',timeMin:10},
+{slug:'argon_crystal',name:'Argon Crystal',nameRu:'Аргонный кристалл',cat:'resources',price:8,change:4.4,volume:400,farm:'Void (распад)',timeMin:20},
+{slug:'tellurium',name:'Tellurium',nameRu:'Теллуриум',cat:'resources',price:14,change:-1.2,volume:250,farm:'Арчвинг: Седна',timeMin:35},
+{slug:'nitain',name:'Nitain Extract',nameRu:'Нитаин',cat:'resources',price:22,change:0.8,volume:180,farm:'Видение Орокин / Гель',timeMin:40}
+];
+var DEMO_DB=DB.map(function(item){return Object.assign({},item)});
+var DEMO_BY_SLUG=Object.create(null);
+DEMO_DB.forEach(function(item){DEMO_BY_SLUG[item.slug]=item});
+var CATALOG=[];var DB_BY_SLUG=Object.create(null);DB.forEach(function(x){DB_BY_SLUG[x.slug]=x});
+var catalogReady=false,catalogLoading=false,catalogLoadingMore=false,catalogRenderLimit=36,catalogOffset=0,catalogTotal=0,catalogVersion=0;
+var catalogFilters={cat:'all',prime:false};
+function rebuildDbIndex(){DB_BY_SLUG=Object.create(null);DB.forEach(function(x){DB_BY_SLUG[x.slug]=x})}
+function dbGet(slug){return DB_BY_SLUG[slug]||null}
+function itemCategory(tags){tags=tags||[];var t=tags.map(function(x){return String(x).toLowerCase()});
+if(t.indexOf('warframe')!==-1)return 'warframes';
+if(t.indexOf('weapon')!==-1)return 'weapons';
+if(t.indexOf('mod')!==-1)return 'mods';
+if(t.indexOf('relic')!==-1)return 'relics';
+if(t.indexOf('resource')!==-1||t.indexOf('material')!==-1)return 'resources';
+if(t.indexOf('arcane_enhancement')!==-1||t.indexOf('arcane')!==-1)return 'arcanes';
+return 'other'}
+function catalogToItem(raw){raw=raw||{};var i18n=raw.i18n||{};var en=i18n.en||{};var ru=i18n.ru||i18n.uk||{};var tags=Array.isArray(raw.tags)?raw.tags:[];var demo=DEMO_BY_SLUG[raw.slug]||{};var category=itemCategory(tags);return {slug:raw.slug||demo.slug||'',name:en.name||raw.name||demo.name||raw.slug||'',nameRu:ru.name||raw.nameRu||demo.nameRu||en.name||raw.slug||'',cat:category!=='other'?category:(demo.cat||'other'),tags:tags,prime:raw.prime===true||tags.some(function(tag){return String(tag).toLowerCase()==='prime'})||!!demo.prime,thumb:raw.thumb||raw.thumbnail||raw.icon||raw.image||en.thumb||en.thumbnail||en.icon||en.image||ru.thumb||ru.thumbnail||ru.icon||ru.image||demo.thumb||'',icon:raw.icon||demo.icon||'',demoPrice:demo.price!=null?Number(demo.price):null,livePrice:null,price:demo.price!=null?Number(demo.price):null,change:Number(demo.change)||0,volume:Number(demo.volume)||0,farm:demo.farm||'Warframe Market',timeMin:Number(demo.timeMin)||0,ducats:Number(raw.ducats)||demo.ducats||0};}
+function mergeCatalogItems(arr){
+var by=Object.create(null);CATALOG.forEach(function(x){by[x.slug]=x});
+arr.map(catalogToItem).filter(function(x){return x.slug}).forEach(function(x){
+var old=by[x.slug];if(old){if(old.livePrice!=null){x.livePrice=old.livePrice;x.price=old.livePrice}else if(x.price==null&&old.price!=null){x.price=old.price}if(old.demoPrice!=null)x.demoPrice=old.demoPrice;if(old.change)x.change=old.change;if(old.volume)x.volume=old.volume;if(old.farm&&old.farm!=='Warframe Market')x.farm=old.farm;if(old.timeMin)x.timeMin=old.timeMin;if(old.thumb&&!x.thumb)x.thumb=old.thumb;if(old._imageFailed&&!x.thumb)x._imageFailed=true;if(old._priceRetryAt)x._priceRetryAt=old._priceRetryAt;if(old._detailRetryAt)x._detailRetryAt=old._detailRetryAt;if(old.liquidityScore!=null)x.liquidityScore=old.liquidityScore;if(old.riskScore!=null)x.riskScore=old.riskScore;if(old.flipScore!=null)x.flipScore=old.flipScore;if(old.analysisConfidence)x.analysisConfidence=old.analysisConfidence;if(old.advice)x.advice=old.advice;if(old.crossedMarket!=null)x.crossedMarket=old.crossedMarket;if(old.rawSpread!=null)x.rawSpread=old.rawSpread;if(old.marketScore!=null)x.marketScore=old.marketScore;if(old.onlineSell!=null)x.onlineSell=old.onlineSell;if(old.onlineBuy!=null)x.onlineBuy=old.onlineBuy;if(old.liquidityLabel)x.liquidityLabel=old.liquidityLabel;if(old.riskLabel)x.riskLabel=old.riskLabel;if(old.recommendedVolume!=null)x.recommendedVolume=old.recommendedVolume;if(old.liveSampleSize!=null)x.liveSampleSize=old.liveSampleSize;if(old.marketSampleSize!=null)x.marketSampleSize=old.marketSampleSize;if(old.paybackScore!=null)x.paybackScore=old.paybackScore;if(old.medianBuy!=null)x.medianBuy=old.medianBuy;if(old.sellCount!=null)x.sellCount=old.sellCount;if(old.buyCount!=null)x.buyCount=old.buyCount}by[x.slug]=x;
+});
+CATALOG=Object.keys(by).map(function(k){return by[k]});DB=CATALOG;rebuildDbIndex();catalogVersion++;
+}
+async function loadCatalog(reset){
+if(catalogLoading)return;catalogLoading=true;
+if(reset){CATALOG=[];catalogOffset=0;catalogTotal=0;catalogReady=false}
+try{var params='?platform=pc&offset='+catalogOffset+'&limit='+catalogRenderLimit;
+if(catalogFilters.cat!=='all')params+='&category='+encodeURIComponent(catalogFilters.cat);if(catalogFilters.prime)params+='&prime=1';
+var d=await api('/api/items'+params),arr=Array.isArray(d.items)?d.items:[];mergeCatalogItems(arr);catalogTotal=Number(d.total)||CATALOG.length;catalogOffset+=arr.length;catalogReady=true;
+$('apiChip').textContent='API: '+fmt(catalogTotal);$('apiChip').className='chipApi ok';renderMarket();renderTicker();
+}catch(e){console.warn('Catalog load failed',e);if(!CATALOG.length)catalogReady=false}finally{catalogLoading=false}
+}
+async function loadMoreCatalog(){if(catalogLoadingMore||catalogOffset>=catalogTotal)return;catalogLoadingMore=true;
+try{var params='?platform=pc&offset='+catalogOffset+'&limit='+catalogRenderLimit;if(catalogFilters.cat!=='all')params+='&category='+encodeURIComponent(catalogFilters.cat);if(catalogFilters.prime)params+='&prime=1';
+var d=await api('/api/items'+params),arr=Array.isArray(d.items)?d.items:[];mergeCatalogItems(arr);catalogTotal=Number(d.total)||catalogTotal;catalogOffset+=arr.length;renderMarket();
+}catch(e){console.warn('Catalog page failed',e)}finally{catalogLoadingMore=false}
+}
+function marketSource(){return catalogReady?CATALOG:DB}
+function itemMatches(it,q){return !q||norm((it.nameRu||'')+' '+(it.name||'')+' '+(it.slug||'')).indexOf(norm(q))!==-1}
+var RELICS=[
+{name:'Axi V7',era:'Axi',drops:['Volt Prime Systems','Volt Prime Neuroptics'],advice:'Открывай, если фармишь Вольт Прайм — системы в цене.'},
+{name:'Meso N10',era:'Meso',drops:['Nikana Prime Blade','Nikana Prime Hilt'],advice:'Клинок Никаны стабилен — хороший выбор для трейда.'},
+{name:'Lith M9',era:'Lith',drops:['Mirage Prime Systems','Mirage Prime Chassis'],advice:'Фарми, пока Мираж в тренде (предмет дня).'},
+{name:'Neo S15',era:'Neo',drops:['Glaive Prime Blade','Glaive Prime Handle'],advice:'Клинок Глайва = высокая маржа, открывай на распродажах.'},
+{name:'Axi R2',era:'Axi',drops:['Rubico Prime Stock','Rubico Prime Barrel'],advice:'Низкий спрос — открывай только под заказ.'},
+{name:'Meso T3',era:'Meso',drops:['Tenora Prime Barrel','Tenora Prime Stock'],advice:'Тенора растёт +5% за сутки — фармить сейчас.'},
+{name:'Requiem I',era:'Requiem',drops:['Фисс: Requiem моды'],advice:'Держи для лич-охоты, трейд-ценность средняя.'},
+{name:'Neo W2',era:'Neo',drops:['Wisp Prime Neuroptics','Wisp Prime Chassis'],advice:'Висп — предмет дня: максимальный профит с реликвии.'}
+];
+var METHODS=[
+{id:'spy',name:'Шпионаж Луна (моды)',price:70,min:25,qty:1},
+{id:'index',name:'Индекс (риск)',price:120,min:30,qty:1},
+{id:'void4',name:'Фиссуры Void T4',price:45,min:20,qty:1},
+{id:'arb',name:'Арбитрации',price:90,min:40,qty:1},
+{id:'relic',name:'Фарм реликвий Axi',price:55,min:18,qty:1}
+];
+var LEADERS=[
+{name:'Platovnik',xp:3120},{name:'TennoSlava',xp:2780},{name:'VoidRunner',xp:2410},
+{name:'КисаБарсик',xp:1980},{name:'NightWaveFM',xp:1620},{name:'LichHunter',xp:1310},
+{name:'ОрокинДилер',xp:980},{name:'EndoMaster',xp:720},{name:'GrineerFriend',xp:430},{name:'НовичокТэнно',xp:120}
+];
+/* ==================== API (live + демо-фолбэк) ==================== */
+async function api(path,body,timeoutMs){var controller=new AbortController();var timeoutId=setTimeout(function(){controller.abort()},timeoutMs||15000);var r;try{var opts={signal:controller.signal};if(body!==undefined){opts.method='POST';opts.headers={'Content-Type':'application/json'};opts.body=JSON.stringify(body)}r=await fetch(path,opts)}finally{clearTimeout(timeoutId)}var d=null;try{d=await r.json()}catch(e){d={}}if(!r.ok){var error=new Error(d.error||'HTTP '+r.status);error.status=r.status;error.data=d;throw error}return d}
+function mockStats(it){var h=hash(it.slug);var vol=it.volume||40;var ms=it.price||Math.max(8,20+(h%140));var mb=Math.max(1,Math.round(ms*0.86));
+var spread=Math.round((ms-mb)/ms*1000)/10;var score=Math.max(5,Math.min(99,Math.round(vol/6+ (it.change>0?15:0) + 40 - spread*2)));
+return{source:'demo',sellCount:Math.round(vol*1.4),buyCount:vol,onlineSell:Math.round(vol*.5),onlineBuy:Math.round(vol*.4),
+sellDepth:vol*3,buyDepth:vol*2,medianSell:ms,medianBuy:mb,lowestSell:ms,highestBuy:mb,spread:spread,score:score,
+verdict:score>=85?'Очень ликвидный':score>=70?'Хороший оборот':score>=50?'Средний оборот':'Низкая ликвидность',
+demandPct:Math.min(100,Math.round(vol/4)),supplyPct:Math.min(100,Math.round(100-spread*3)),confidence:Math.min(100,40+vol/5),sellPrices:[],buyPrices:[],
+liquidityScore:50,liquidityLabel:'Демо-оценка',riskScore:50,riskLabel:'Оценка в демо-режиме',flipScore:50,recommendedVolume:1,analysisConfidence:'low',paybackScore:50,advice:'Демо-рекомендация. Для точного анализа нужны live-ордера.'}}
+async function liveItem(slug){try{var data=await api('/api/item/'+encodeURIComponent(slug)+'?platform=pc');if(data&&data.statsRateLimited===true){data.rateLimited=true}return data}catch(error){if(error.status===429){return{rateLimited:true,stats:null}}console.warn('Не удалось загрузить предмет:',slug,error);return null}}
+async function liveItemDetail(slug){try{return await api('/api/item-detail/'+encodeURIComponent(slug)+'?platform=pc')}catch(error){if(error.status===429){return{rateLimited:true}}console.warn('Не удалось загрузить детали предмета:',slug,error);return null}}
+async function livePrice(slug){try{return await api('/api/price/'+encodeURIComponent(slug)+'?platform=pc')}catch(error){if(error.status===429){console.warn('API rate limit для цены:',slug)}else{console.warn('Не удалось загрузить цену:',slug,error)}return null}}
+async function askAi(it){
+var payload={slug:it.slug,platform:'pc',name:it.name||'',nameRu:it.nameRu||''};
+return await api('/api/ai/analyze',payload,30000);
+}
+function genHistory(slug,base,points,trend){var r=rng(hash(slug)+points);var out=[];var v=base*(1-trend/100);
+for(var i=0;i<points;i++){v+= (r()-0.48)*base*0.03 + base*trend/100/points;out.push(Math.max(1,Math.round(v)))}return out}
+/* ==================== УВЕДОМЛЕНИЯ ==================== */
+var notifs=[];
+function notify(title,text,type){notifs.unshift({t:title,x:text,k:type||'info',time:Date.now(),read:false});if(notifs.length>20)notifs.pop();renderNotifs()}
+function renderNotifs(){var L=$('notifList');L.innerHTML='';if(!notifs.length)L.innerHTML='<li style="justify-content:center;color:var(--muted)">Пока пусто</li>';
+notifs.forEach(function(n){var li=document.createElement('li');if(!n.read)li.className='unread';li.innerHTML='<span class="nDot"></span><div><b>'+esc(n.t)+'</b><br><small>'+esc(n.x)+'</small></div>';L.appendChild(li)});
+var un=notifs.filter(function(n){return !n.read}).length;var b=$('bellBadge');b.hidden=!un;b.textContent=un}
+/* ==================== ДОСТИЖЕНИЯ ==================== */
+var ACH=[
+{id:'search1',ico:'🔎',name:'Первый поиск'},
+{id:'fav1',ico:'★',name:'Первое избранное'},
+{id:'fav5',ico:'💛',name:'Коллекционер (5)'},
+{id:'cmp2',ico:'⚖',name:'Аналитик (сравнение)'},
+{id:'calc1',ico:'🧮',name:'Экономист'},
+{id:'alert1',ico:'🔔',name:'Сторож цены'},
+{id:'xp100',ico:'⚡',name:'100 XP'},
+{id:'streak3',ico:'🔥',name:'Стрик 3 дня'}
+];
+function unlock(id){if(ach.indexOf(id)!==-1)return;ach.push(id);save();var a=null;ACH.forEach(function(x){if(x.id===id)a=x});
+if(a){toast('🏅 Достижение: '+a.name,'gold');notify('Достижение',a.name,'gold');addXp(25)}}
+/* ==================== ФОН: ЧАСТИЦЫ + ПАРАЛЛАКС + GLOW ==================== */
+(function(){var cv=$('stars');var coarse=window.matchMedia&&window.matchMedia('(pointer: coarse)').matches;if(coarse||innerWidth<900){if(cv)cv.remove();return;}var cx=cv.getContext('2d'),P=[],N=45,off=0;
+function rs(){cv.width=innerWidth;cv.height=innerHeight}rs();addEventListener('resize',rs);var r=rng(42);for(var i=0;i<N;i++)P.push({x:r()*innerWidth,y:r()*innerHeight,z:r()*1+.3,vx:(r()-.5)*.12,vy:(r()-.5)*.12,tw:r()*6.28});
+addEventListener('scroll',function(){off=scrollY*0.06},{passive:true});addEventListener('mousemove',function(e){var g=$('cursorGlow');if(g){g.style.left=e.clientX+'px';g.style.top=e.clientY+'px'}});var last=0;
+(function tick(now){if(now-last<33){requestAnimationFrame(tick);return}last=now;cx.clearRect(0,0,cv.width,cv.height);var t=now/700;P.forEach(function(p){p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=cv.width;if(p.x>cv.width)p.x=0;if(p.y<0)p.y=cv.height;if(p.y>cv.height)p.y=0;var a=.25+Math.abs(Math.sin(t+p.tw))*.5;cx.beginPath();cx.arc(p.x,(p.y-off*p.z%cv.height+cv.height)%cv.height,p.z*1.4,0,6.283);cx.fillStyle='rgba(140,220,255,'+a.toFixed(2)+')';cx.fill()});requestAnimationFrame(tick)})(0)})();
+/* ==================== ТИКЕР ==================== */
+function renderTicker(){var t=$('tickerTrack');var html='';var pool=DB.filter(function(it){return it.price});pool.slice(0,24).concat(pool.slice(0,24)).forEach(function(it){
+var approx=it.livePrice==null;
+html+='<span class="tk"><b>'+esc(it.nameRu)+'</b> <span class="p">'+(approx?'≈':'')+fmt(it.price)+'p</span> <span class="'+(it.change>=0?'up':'down')+'">'+(it.change>=0?'▲':'▼')+Math.abs(it.change)+'%</span></span>'});
+t.innerHTML=html}
+/* ==================== HERO КАРУСЕЛЬ ==================== */
+var heroIdx=0,heroTimer=null;
+var SLIDES=[
+{img:HERO_IMGS[0],tag:'⭐ Предмет дня',title:'Mirage Prime <span>в тренде</span>',sub:'Объём 210 ордеров, +4.2% за сутки. Прайм-сет Миражи — стабильная ликвидность для быстрого флипа.',price:'385 p',slug:'mirage_prime_set'},
+{img:HERO_IMGS[1],tag:'⚡ Арбитраж-сигнал',title:'Слепая Ярость <span>недооценена</span>',sub:'Медиана покупки ниже медианы продажи на 14% — смотри режим «Арбитраж».',price:'65 p',slug:'blind_rage'},
+{img:HERO_IMGS[0],tag:'🏺 Реликвия недели',title:'Axi V7 <span>+12% за сутки</span>',sub:'Системы Вольта в цене: фарми Void T4 и открывай на хайпе.',price:'25 p',slug:'axi_v7'}
+];
+function buildHero(){var box=$('heroBox');if(!box||getComputedStyle(box).display==='none'){return}var dots=$('heroDots');
+SLIDES.forEach(function(s,i){var d=document.createElement('div');d.className='heroSlide'+(i===0?' on':'');
+d.innerHTML='<img src="'+s.img+'" alt=""><div class="heroTxt"><span class="heroTag">'+s.tag+'</span><h1 class="heroTitle">'+s.title+'</h1><p class="heroSub">'+s.sub+'</p><div class="heroPrice">◈ '+s.price+'</div> <button class="btn primary sm" style="margin-left:10px" data-open="'+s.slug+'">Открыть аналитику</button></div>';
+box.insertBefore(d,$('heroDots'));
+var dot=document.createElement('i');if(i===0)dot.className='on';dot.addEventListener('click',function(){heroGo(i)});dots.appendChild(dot)});
+box.addEventListener('click',function(e){var b=e.target.closest('[data-open]');if(b)openItem(b.getAttribute('data-open'))});
+$('heroPrev').addEventListener('click',function(){heroGo(heroIdx-1)});$('heroNext').addEventListener('click',function(){heroGo(heroIdx+1)});
+heroTimer=setInterval(function(){heroGo(heroIdx+1)},6000)}
+function heroGo(index){heroIdx=(index+SLIDES.length)%SLIDES.length;var slides=document.querySelectorAll('.heroSlide');var dots=$('heroDots').children;for(var i=0;i<slides.length;i++){slides[i].classList.toggle('on',i===heroIdx)}for(var j=0;j<dots.length;j++){dots[j].classList.toggle('on',j===heroIdx)}}
+/* ==================== РОУТЕР ==================== */
+function showView(v){state.view=v;
+document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('on',t.getAttribute('data-view')===v||(v==='item'&&t.getAttribute('data-view')==='market'))});
+['market','item','dash','rating','calc','relics','arb','favs','journal'].forEach(function(k){var s=$('view-'+k);s.hidden=k!==v;if(k===v){s.classList.remove('view');void s.offsetWidth;s.classList.add('view')}});
+if(v==='market')renderMarket();if(v==='dash')renderDash();if(v==='rating')renderRating();
+if(v==='calc')renderCalc();if(v==='relics')renderRelics();if(v==='arb')renderArb();if(v==='favs')renderFavs();if(v==='journal')renderJournal();
+scrollTo({top:0,behavior:'smooth'})}
+/* ==================== РЫНОК ==================== */
+function filtered(){var q=norm($('globalSearch').value||'');var list=marketSource().filter(function(it){return (state.cat==='all'||state.cat==='prime'&&it.prime||state.cat!=='prime'&&it.cat===state.cat)&&itemMatches(it,q)});
+var s=state.sort;list.sort(function(a,b){var ap=Number(a.price)||0,bp=Number(b.price)||0,av=Number(a.volume)||0,bv=Number(b.volume)||0;
+if(s==='priceDesc')return bp-ap;if(s==='priceAsc')return ap-bp;if(s==='volume')return bv-av;if(s==='change')return (b.change||0)-(a.change||0);return (bp*bv/100)-(ap*av/100)});return list}
+function cardHTML(it){var fav=isFav(it.slug);var img=it.thumb||it.icon;var priceVisible=hasPrice(it);
+var art=it._imageFailed?'<span class="imageFallback">◆</span>':(img?imageHTML(img,it.name||it.slug):imagePlaceholder());
+return '<div class="gcard pcard" data-slug="'+esc(it.slug)+'" data-tip="'+esc(it.farm||'Warframe Market')+'">'+
+'<div class="art">'+art+'</div><b>'+esc(it.nameRu||it.name)+'</b><div class="en">'+esc(it.name||it.slug)+'</div>'+
+'<div class="prow"><span class="priceP">'+(priceVisible?fmt(it.price)+' p':'—')+'</span><span class="chg '+((it.change||0)>=0?'up':'down')+'">'+(priceVisible?(it.change>=0?'▲':'▼')+Math.abs(it.change||0)+'%':'API')+'</span><span class="vol">'+(it.volume?'объём '+fmt(it.volume):'цена при открытии')+'</span></div>'+
+'<button class="starBtn'+(fav?' on':'')+'" data-star="'+esc(it.slug)+'">★</button></div>'}
+function renderMarket(){var g=$('marketGrid');var list=filtered();var shown=list.slice(0,Math.max(36,Math.min(catalogOffset||36,list.length)));g.innerHTML=shown.map(cardHTML).join('');
+var more=$('marketMore');if(more){more.hidden=!(catalogOffset<catalogTotal);more.textContent=catalogLoadingMore?'Загрузка…':'Показать ещё'}hydrateVisiblePrices(shown,catalogVersion)}
+var priceQueueBusy=false;
+function hydrateVisiblePrices(items,version){
+if(priceQueueBusy){return}
+var now=Date.now();
+var queue=items.filter(function(item){
+var needDetail=!item.thumb&&!item._imageFailed&&now>=(item._detailRetryAt||0);
+var needPrice=item.livePrice==null&&now>=(item._priceRetryAt||0);
+return item.slug&&!item._loadingData&&(needDetail||needPrice);
+}).slice(0,4);
+if(!queue.length){return}
+queue.forEach(function(item){item._loadingData=true});
+priceQueueBusy=true;
+Promise.all(queue.map(function(item){
+var needDetail=!item.thumb&&!item._imageFailed&&now>=(item._detailRetryAt||0);
+var needPrice=item.livePrice==null&&now>=(item._priceRetryAt||0);
+return Promise.all([
+needDetail?liveItemDetail(item.slug):Promise.resolve(null),
+needPrice?livePrice(item.slug):Promise.resolve(null)
+]).then(function(result){
+var detail=result[0],price=result[1];
+if(version!==catalogVersion){return}
+if(needDetail){
+if(detail&&detail.rateLimited){item._detailRetryAt=Date.now()+60000}
+else if(detail){
+if(detail.name){item.name=detail.name}
+if(detail.nameRu){item.nameRu=detail.nameRu}
+if(detail.thumb){item.thumb=detail.thumb;item._detailRetryAt=0}else if(!item.thumb){item._imageFailed=true}
+}else{item._detailRetryAt=Date.now()+60000}
+}
+if(needPrice){
+var livePriceValue=(price&&price.available&&Number(price.price)>0)?Number(price.price):0;
+if(livePriceValue>0){
+item.livePrice=livePriceValue;item.price=livePriceValue;
+item.volume=Number(price.sellCount||price.buyCount||item.volume||0);
+item.liquidityScore=Number(price.liquidityScore||0);
+item.riskScore=Number(price.riskScore||0);
+item.flipScore=Number(price.flipScore||0);
+item.analysisConfidence=price.analysisConfidence||'low';
+item.advice=price.advice||'';
+item.crossedMarket=price.crossedMarket===true;
+item.rawSpread=Number(price.rawSpread);
+item.marketScore=Number(price.marketScore);
+item.medianBuy=Number(price.medianBuy||0);
+item.sellCount=Number(price.sellCount||0);
+item.buyCount=Number(price.buyCount||0);
+item.onlineSell=Number(price.onlineSell||0);
+item.onlineBuy=Number(price.onlineBuy||0);
+item.liquidityLabel=price.liquidityLabel||'';
+item.riskLabel=price.riskLabel||'';
+item.recommendedVolume=Number(price.recommendedVolume||1);
+item.paybackScore=Number(price.paybackScore||5);
+item.liveSampleSize=Number(price.liveSampleSize||0);
+item.marketSampleSize=Number(price.marketSampleSize||0);
+item._priceRetryAt=0
+}else{item._priceRetryAt=Date.now()+60000}
+}
+}).catch(function(error){
+if(needDetail){item._detailRetryAt=Date.now()+60000}
+if(needPrice){item._priceRetryAt=Date.now()+60000}
+console.warn('Ошибка загрузки карточки:',item.slug,error);
+}).finally(function(){item._loadingData=false});
+})).finally(function(){
+priceQueueBusy=false;
+if(state.view==='market'){setTimeout(function(){if(state.view==='market'){renderMarket()}},600)}
+});
+}
+$('marketGrid').addEventListener('click',function(e){
+var st=e.target.closest('[data-star]');if(st){e.stopPropagation();toggleFav(st.getAttribute('data-star'));return}
+var c=e.target.closest('[data-slug]');if(c)openItem(c.getAttribute('data-slug'))});
+$('marketMore').addEventListener('click',function(){if(catalogOffset<catalogTotal)loadMoreCatalog()});
+$('filterChips').addEventListener('click',function(e){var c=e.target.closest('.chip');if(!c)return;
+document.querySelectorAll('#filterChips .chip').forEach(function(x){x.classList.remove('on')});c.classList.add('on');state.cat=c.getAttribute('data-cat');catalogFilters={cat:state.cat==='prime'?'all':state.cat,prime:state.cat==='prime'};loadCatalog(true)});
+$('sortSel').addEventListener('change',function(e){state.sort=e.target.value;renderMarket()});
+$('csvBtn').addEventListener('click',function(){var rows=[['name','nameRu','category','price','change24h','volume']];
+filtered().forEach(function(it){rows.push([it.name,it.nameRu,it.cat,it.price,it.change,it.volume])});
+var csv=rows.map(function(r){return r.join(';')}).join('\n');var a=document.createElement('a');
+a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download='marketpulse_market.csv';a.click();
+toast('CSV выгружен','success');unlock('calc1')});
+/* ==================== ИЗБРАННОЕ ==================== */
+function toggleFav(slug){var it=dbGet(slug)||{slug:slug,name:slug,nameRu:slug,cat:'mods',price:10,change:0,volume:10,farm:'—',timeMin:30};
+var i=favs.findIndex(function(f){return f.slug===slug});
+if(i>=0){favs.splice(i,1);toast('Убрано из избранного','info')}
+else{favs.push({slug:slug,name:it.name,nameRu:it.nameRu,cat:it.cat,price:it.price});daily.favs++;unlock('fav1');if(favs.length>=5)unlock('fav5');toast('★ В избранном','success')}
+save();$('favCnt').textContent=favs.length;
+if(state.view==='market')renderMarket();if(state.view==='favs')renderFavs();if(state.slug===slug)syncItFav()}
+function renderFavs(){var g=$('favGrid');g.innerHTML='';$('favEmpty').hidden=favs.length>0;
+favs.forEach(function(f){var it=dbGet(f.slug)||f;g.insertAdjacentHTML('beforeend',cardHTML(Object.assign({},it,{price:it.price!=null?it.price:f.price})))});
+g.onclick=function(e){var st=e.target.closest('[data-star]');if(st){toggleFav(st.getAttribute('data-star'));return}
+var c=e.target.closest('[data-slug]');if(c)openItem(c.getAttribute('data-slug'))}}
+/* ==================== ПРЕДМЕТ ==================== */
+var charts={};var itemRequestId=0;
+/* Lightweight native canvas charts — no Chart.js/CDN, much faster on phones. */
+function setChart(key,id,cfg){
+var cv=$(id); if(!cv)return;
+if(charts[key]&&charts[key].ro)try{charts[key].ro.disconnect()}catch(e){}
+var draw=function(){
+var rect=cv.getBoundingClientRect(),w=Math.max(280,Math.floor(rect.width||cv.parentElement.clientWidth||300)),h=Math.max(220,Math.floor(rect.height||260));
+var dpr=Math.min(2,window.devicePixelRatio||1);cv.width=Math.floor(w*dpr);cv.height=Math.floor(h*dpr);cv.style.width=w+'px';cv.style.height=h+'px';
+var c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);
+var datasets=(cfg.data&&cfg.data.datasets)||[], labels=(cfg.data&&cfg.data.labels)||[];
+var vals=[];datasets.forEach(function(ds){(ds.data||[]).forEach(function(v){v=Number(v);if(isFinite(v))vals.push(v)})});
+if(!vals.length){c.fillStyle='#8CA3C3';c.font='14px system-ui';c.textAlign='center';c.fillText('Нет данных для графика',w/2,h/2);return}
+var min=Math.min.apply(Math,vals),max=Math.max.apply(Math,vals);if(min===max){min=Math.max(0,min-1);max=max+1}
+var pad={l:42,r:18,t:14,b:30},pw=w-pad.l-pad.r,ph=h-pad.t-pad.b;
+var yMin=min-(max-min)*.08,yMax=max+(max-min)*.08;
+function x(i,n){return pad.l+(n<=1?pw/2:i/(n-1)*pw)}
+function y(v){return pad.t+(yMax-v)/(yMax-yMin)*ph}
+c.strokeStyle='rgba(140,163,199,.12)';c.lineWidth=1;c.font='11px system-ui';c.fillStyle='#8CA3C3';c.textAlign='right';
+for(var g=0;g<4;g++){var gy=pad.t+g*ph/3;c.beginPath();c.moveTo(pad.l,gy);c.lineTo(w-pad.r,gy);c.stroke();var gv=yMax-(yMax-yMin)*g/3;c.fillText((Math.round(gv*10)/10).toString(),pad.l-7,gy+4)}
+datasets.forEach(function(ds){
+var data=(ds.data||[]).map(Number),n=data.length;if(!n)return;
+var isBar=ds.type==='bar';
+if(isBar){var bw=Math.max(2,Math.min(18,pw/Math.max(n,1)*.55));c.fillStyle=ds.backgroundColor||'rgba(109,228,255,.25)';
+data.forEach(function(v,i){if(!isFinite(v))return;var xx=x(i,Math.max(n,2))-bw/2,yy=y(Math.max(0,v)),base=y(Math.max(0,yMin));c.fillRect(xx,Math.min(yy,base),bw,Math.abs(base-yy))})
+}else{
+var stroke=ds.borderColor||'#6de4ff';c.strokeStyle=stroke;c.lineWidth=2;c.beginPath();
+data.forEach(function(v,i){if(!isFinite(v))return;var xx=x(i,Math.max(n,2)),yy=y(v);if(i===0)c.moveTo(xx,yy);else c.lineTo(xx,yy)});c.stroke();
+if(ds.fill){c.globalAlpha=.14;c.fillStyle=stroke;c.lineTo(x(n-1,Math.max(n,2)),y(yMin));c.lineTo(x(0,Math.max(n,2)),y(yMin));c.closePath();c.fill();c.globalAlpha=1}
+}
+});
+c.fillStyle='#8CA3C3';c.font='10px system-ui';c.textAlign='center';var step=Math.max(1,Math.ceil(labels.length/6));
+for(var i=0;i<labels.length;i+=step)c.fillText(String(labels[i]),x(i,Math.max(labels.length,2)),h-9);
+if(datasets.length>1){var lx=pad.l;datasets.forEach(function(ds){c.fillStyle=ds.borderColor||'#6de4ff';c.fillRect(lx,h-25,18,3);c.fillStyle='#8CA3C3';c.textAlign='left';c.fillText(ds.label||'',lx+23,h-21);lx+=Math.min(105,35+String(ds.label||'').length*5.5)})}
+};
+draw();
+var ro=null;if(window.ResizeObserver){ro=new ResizeObserver(draw);ro.observe(cv.parentElement||cv)}
+charts[key]={draw:draw,ro:ro};
+}
+function paybackOf(st){if(st.crossedMarket){return 5}return Math.max(5,Math.min(99,Math.round(st.score*0.6+ (100-Math.min(100,st.spread*3))*0.4)))}
+function profitHourOf(it,st){return it&&it.timeMin?Math.round((it.price||st.medianSell)/it.timeMin*60):null}
+var offersCache={},offersMode='sell';
+function copyText(text){if(navigator.clipboard&&window.isSecureContext){return navigator.clipboard.writeText(text)}return new Promise(function(resolve,reject){var ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);ta.focus();ta.select();var ok=false;try{ok=document.execCommand('copy')}catch(e){}ta.remove();ok?resolve():reject(new Error('copy failed'))})}
+function offerWhisper(o){var nm=$('itSub').textContent||state.slug;return '/w '+o.name+' Hi! I want to '+(offersMode==='sell'?'buy':'sell')+': "'+nm+'" for '+o.platinum+' platinum. (warframe.market)'}
+function offersMsg(text){var box=$('itOffersList');box.textContent='';var e=document.createElement('div');e.className='label';e.style.marginTop='8px';e.textContent=text;box.appendChild(e)}
+function renderOffers(){var d=offersCache[state.slug];if(!d)return;var list=d[offersMode]||[];if(!list.length){offersMsg('Нет игроков в сети с такими ордерами.');return}var box=$('itOffersList');box.textContent='';list.forEach(function(o){var b=document.createElement('button');b.type='button';b.className='wspRow';[['wspDot'+(o.status==='ingame'?' on':''),''],['wspName',o.name],['wspQty','×'+o.quantity],['wspPrice',fmt(o.platinum)+' p'],['wspCopy','📋 /w']].forEach(function(p){var s=document.createElement('span');s.className=p[0];s.textContent=p[1];b.appendChild(s)});b.addEventListener('click',function(){var t=offerWhisper(o);copyText(t).then(function(){toast('Скопировано: /w '+o.name,'gold')},function(){toast('Не удалось скопировать','info')})});box.appendChild(b)})}
+async function loadOffers(slug){offersMsg('Загрузка…');try{var d=await api('/api/orders/'+encodeURIComponent(slug)+'?platform=pc');if(state.slug!==slug)return;offersCache[slug]=d;renderOffers()}catch(e){if(state.slug===slug){offersMsg(e&&e.status===429?'API временно ограничен, попробуй через минуту.':'Не удалось загрузить предложения.')}}}
+document.querySelectorAll('[data-offers]').forEach(function(b){b.addEventListener('click',function(){offersMode=b.dataset.offers;document.querySelectorAll('[data-offers]').forEach(function(x){x.classList.toggle('on',x===b)});renderOffers()})});
+async function openItem(slug){var requestId=++itemRequestId;state.slug=slug;var it=dbGet(slug);
+var pseudo=it||{slug:slug,name:slug,nameRu:slug,cat:'mods',price:0,change:0,volume:50,farm:'уточняется',timeMin:0};
+showView('item');
+$('itArt').innerHTML=pseudo.thumb?imageHTML(pseudo.thumb,pseudo.name||pseudo.slug):'<span class="imageFallback">'+(CAT_ICON[pseudo.cat]||'◆')+'</span>';
+$('itName').textContent=pseudo.nameRu||pseudo.name;
+$('itSub').textContent=pseudo.name;$('itCat').textContent=CAT_RU[pseudo.cat]||pseudo.cat;
+$('itFarm').textContent='🌾 '+pseudo.farm;syncItFav();
+$('itStats').innerHTML='<div class="gcard stat"><small>Загрузка…</small><b>…</b></div>'.repeat(6);
+if(!viewedItems[slug]){viewedItems[slug]=true;store.set('viewedItems',viewedItems);addXp(2,'просмотр аналитики')}
+var d=await liveItem(slug);if(requestId!==itemRequestId)return;var isLive=!!(d&&d.stats);var isRateLimited=!!(d&&d.rateLimited);var st=isLive?d.stats:mockStats(pseudo);
+if(d){
+if(d.name){pseudo.name=d.name}
+if(d.nameRu){pseudo.nameRu=d.nameRu}
+if(d.thumb&&d.thumb!==pseudo.thumb){pseudo.thumb=d.thumb;$('itArt').innerHTML=imageHTML(d.thumb,pseudo.name||slug)}
+$('itName').textContent=pseudo.nameRu||pseudo.name||slug;
+$('itSub').textContent=pseudo.name||slug;
+}
+if(isLive){
+if(Number(st.medianSell)>0){pseudo.livePrice=Number(st.medianSell);pseudo.price=pseudo.livePrice}
+pseudo.liquidityScore=Number(st.liquidityScore||0);
+pseudo.riskScore=Number(st.riskScore||0);
+pseudo.flipScore=Number(st.flipScore||0);
+pseudo.analysisConfidence=st.analysisConfidence||'low';
+pseudo.advice=st.advice||'';
+pseudo.crossedMarket=st.crossedMarket===true;
+pseudo.medianBuy=Number(st.medianBuy||0);
+pseudo.sellCount=Number(st.sellCount||0);
+pseudo.buyCount=Number(st.buyCount||0);
+pseudo.onlineSell=Number(st.onlineSell||0);
+pseudo.onlineBuy=Number(st.onlineBuy||0);
+pseudo.paybackScore=Number(st.paybackScore||5);
+pseudo.liquidityLabel=st.liquidityLabel||'';
+pseudo.riskLabel=st.riskLabel||'';
+pseudo.recommendedVolume=Number(st.recommendedVolume||1);
+pseudo.liveSampleSize=Number(st.liveSampleSize||0);
+pseudo.marketSampleSize=Number(st.marketSampleSize||0);
+}
+$('itPrice').textContent=fmt(st.medianSell||pseudo.price)+' p';
+var ch=pseudo.change;$('itChange').className='chg '+(ch>=0?'up':'down');$('itChange').textContent=(ch>=0?'▲ ':'▼ ')+Math.abs(ch)+'%';
+var ph=profitHourOf(pseudo,st),pb=st.paybackScore!=null?Number(st.paybackScore):paybackOf(st);
+$('itStats').innerHTML=
+'<div class="gcard stat"><small>Медиана продажи</small><b class="gold">'+fmt(st.medianSell)+' p</b></div>'+
+'<div class="gcard stat"><small>Медиана покупки</small><b>'+fmt(st.medianBuy)+' p</b></div>'+
+'<div class="gcard stat"><small>Спред</small><b>'+(st.crossedMarket?'пересечённый рынок':fmt(st.spread)+'%')+'</b></div>'+
+'<div class="gcard stat"><small>Объём (ордера)</small><b>'+fmt(st.sellCount!=null?st.sellCount:pseudo.volume)+'</b></div>'+
+'<div class="gcard stat"><small>Прибыль в час</small><b class="gold">'+(ph?fmt(ph)+' p/ч':'—')+'</b></div>'+
+'<div class="gcard stat"><small>Шанс окупа</small><b>'+pb+'%</b></div>'+
+'<div class="gcard stat"><small>Ликвидность</small><b class="gold">'+fmt(st.liquidityScore)+'/100</b></div>'+
+'<div class="gcard stat"><small>Риск зависания</small><b>'+fmt(st.riskScore)+'/100</b></div>'+
+'<div class="gcard stat"><small>Рейтинг флипа</small><b class="gold">'+fmt(st.flipScore)+'/100</b></div>';
+loadOffers(slug);$('itScore').textContent=fmt(st.score);
+$('itDial').style.background='conic-gradient(var(--acc) '+(st.score*3.6)+'deg, rgba(255,255,255,.08) 0)';
+$('bDemand').style.width=(st.demandPct||0)+'%';$('bSupply').style.width=(st.supplyPct||0)+'%';$('bPayback').style.width=pb+'%';
+$('itVerdict').textContent=st.verdict||'—';
+$('itNote').textContent=st.note||('источник: '+(st.source==='live'?'warframe.market API':'демо-модель'));
+$('itAdviceLabel').textContent='Аналитический помощник · '+(isLive?'live-данные':isRateLimited?'API временно ограничен':'демо');
+var adviceMeta=[];
+if(st.liquidityLabel){adviceMeta.push(st.liquidityLabel+': '+fmt(st.liquidityScore)+'/100')}
+if(st.riskLabel){adviceMeta.push(st.riskLabel+': '+fmt(st.riskScore)+'/100')}
+if(st.flipScore!=null){adviceMeta.push('Флип: '+fmt(st.flipScore)+'/100')}
+if(st.recommendedVolume!=null){adviceMeta.push('Рекомендуемый объём: '+fmt(st.recommendedVolume))}
+if(st.analysisConfidence){var confidenceLabels={high:'высокая',medium:'средняя',low:'низкая'};adviceMeta.push('Уверенность: '+(confidenceLabels[st.analysisConfidence]||st.analysisConfidence))}
+if(isRateLimited){adviceMeta=['Live-ордера недоступны','Показана демо-оценка']}
+var adviceText=st.advice||'Недостаточно данных для рекомендации.';
+if(isRateLimited){adviceText='API временно ограничен. Показана демо-оценка, не используй её как live-сигнал.'}
+else if(d&&d.statsError&&!isLive){adviceText='Live-ордера недоступны. Показана демо-оценка.'}
+$('itAdviceText').textContent=adviceText;
+$('itAdviceMeta').textContent=adviceMeta.join(' · ');
+drawPriceChart(pseudo,st);renderCompare();renderSimilar(pseudo);
+activity[6]+=0; save()}
+function syncItFav(){$('itFavBtn').classList.toggle('on',isFav(state.slug))}
+function drawPriceChart(it,st){var pts=state.period==='24h'?24:state.period==='7d'?28:30;
+var base=st.medianSell||it.price||50;var hist=genHistory(it.slug,base,pts,it.change);
+var vols=genHistory(it.slug+'v',Math.max(5,it.volume/4),pts,2);
+var labels=[];for(var i=0;i<pts;i++)labels.push(state.period==='24h'?i+':00':'д'+(i+1));
+setChart('price','chartPrice',{data:{labels:labels,datasets:[
+{type:'line',label:'Цена',data:hist,borderColor:'#6de4ff',backgroundColor:'rgba(109,228,255,.12)',fill:true,tension:.35,pointRadius:0,borderWidth:2},
+{type:'bar',label:'Объём',data:vols,backgroundColor:'rgba(109,228,255,.25)',yAxisID:'y1'}]},
+options:{responsive:true,maintainAspectRatio:false,scales:{y:{grid:{color:'rgba(140,163,199,.12)'}},y1:{position:'right',grid:{display:false}},x:{grid:{display:false}}},plugins:{legend:{labels:{color:'#8CA3C3'}}}}});
+window._lastHist=hist}
+document.querySelectorAll('.periodBtns .chip').forEach(function(b){b.addEventListener('click',function(){
+document.querySelectorAll('.periodBtns .chip').forEach(function(x){x.classList.remove('on')});b.classList.add('on');
+state.period=b.getAttribute('data-period');if(state.slug){var it=dbGet(state.slug);openItem(state.slug)}})});
+$('csvItemBtn').addEventListener('click',function(){var h=window._lastHist||[];var rows=[['i','price']];h.forEach(function(p,i){rows.push([i+1,p])});
+var csv=rows.map(function(r){return r.join(';')}).join('\n');var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=(state.slug||'item')+'_history.csv';a.click();toast('CSV истории выгружен','success')});
+$('itFavBtn').addEventListener('click',function(){if(state.slug)toggleFav(state.slug)});
+$('backBtn').addEventListener('click',function(){showView('market')});
+$('itCompareBtn').addEventListener('click',function(){if(!state.slug)return;
+if(state.compare.indexOf(state.slug)!==-1){toast('Уже в сравнении','info');return}
+if(state.compare.length>=3){toast('Максимум 3 предмета','error');return}
+state.compare.push(state.slug);if(state.compare.length>=2)unlock('cmp2');renderCompare();toast('⚖ Добавлено к сравнению','success')});
+function aiShowError(msg){$('aiLoading').hidden=true;$('aiResult').hidden=true;$('aiError').hidden=false;$('aiError').textContent=msg}
+function aiShowResult(data){$('aiLoading').hidden=true;$('aiError').hidden=true;$('aiResult').hidden=false;
+$('aiVerdict').textContent=data.verdict||'—';
+$('aiSummary').textContent=data.summary||'';
+$('aiBuyPrice').textContent=data.buyPrice!=null?fmt(data.buyPrice)+' p':'—';
+$('aiSellPrice').textContent=data.sellPrice!=null?fmt(data.sellPrice)+' p':'—';
+$('aiVolume').textContent=data.recommendedVolume!=null?fmt(data.recommendedVolume):'—';
+var risksHtml='';(data.risks||[]).forEach(function(r){risksHtml+='<li>'+esc(String(r))+'</li>'});
+$('aiRisks').innerHTML=risksHtml||'<li>—</li>';
+$('aiAction').textContent=data.action||'—';
+$('aiMeta').textContent=data.cached?'Ответ из кэша (обновляется не чаще раза в 5 минут на предмет)':'Только что получено от ИИ'}
+$('itAiBtn').addEventListener('click',async function(){if(!state.slug)return;
+var it=dbGet(state.slug);if(!it){toast('Предмет не найден','error');return}
+$('aiItemName').textContent=it.nameRu||it.name||it.slug;
+$('aiOverlay').hidden=false;$('aiLoading').hidden=false;$('aiError').hidden=true;$('aiResult').hidden=true;
+try{var data=await askAi(it);aiShowResult(data)}
+catch(error){var localAdvice=it.advice||'Недостаточно данных для локальной оценки.';
+var rateLimited=error.status===429||(error.data&&error.data.rateLimited===true);
+aiShowError((rateLimited?'ИИ сейчас перегружен запросами.':'ИИ недоступен.')+' Локальная оценка: '+localAdvice)}});
+$('aiClose').addEventListener('click',function(){$('aiOverlay').hidden=true});
+function renderCompare(){var tray=$('compareTray');tray.innerHTML='';
+if(!state.compare.length)tray.innerHTML='<span class="label">Пока пусто — добавь до 3 предметов кнопкой «Сравнить».</span>';
+state.compare.forEach(function(s){var it=dbGet(s)||{nameRu:s};var d=document.createElement('span');d.className='tItem';
+d.innerHTML=esc(it.nameRu)+' <button data-rm="'+s+'">✕</button>';tray.appendChild(d)});
+tray.onclick=function(e){var b=e.target.closest('[data-rm]');if(b){state.compare=state.compare.filter(function(x){return x!==b.getAttribute('data-rm')});renderCompare()}};
+var ds=state.compare.map(function(s,i){var it=dbGet(s)||{price:50};var col=['#6de4ff','#62e6a8','#ffd166'][i];
+return{label:(it.nameRu||s),data:genHistory(s,it.price||50,24,it?it.change:0),borderColor:col,backgroundColor:'transparent',tension:.35,pointRadius:0,borderWidth:2}});
+setChart('cmp','chartCompare',{type:'line',data:{labels:Array.from({length:24},function(_,i){return i+':00'}),datasets:ds},
+options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8CA3C3'}}},scales:{y:{grid:{color:'rgba(140,163,199,.12)'}},x:{grid:{display:false}}}}})}
+function renderSimilar(it){var row=$('similarRow');row.innerHTML='';
+DB.filter(function(x){return x.cat===it.cat&&x.slug!==it.slug}).slice(0,4).forEach(function(x){row.insertAdjacentHTML('beforeend',cardHTML(x))});
+row.onclick=function(e){var c=e.target.closest('[data-slug]');if(c)openItem(c.getAttribute('data-slug'))}}
+/* ==================== АЛЕРТЫ ==================== */
+$('itAlertBtn').addEventListener('click',function(){if(!state.slug)return;$('alName').textContent=(dbGet(state.slug)||{}).nameRu||state.slug;
+$('alTarget').value=alerts[state.slug]||'';$('alOverlay').hidden=false});
+$('alClose').addEventListener('click',function(){$('alOverlay').hidden=true});
+$('alRemove').addEventListener('click',function(){delete alerts[state.slug];save();$('alOverlay').hidden=true;toast('Алерт убран','info')});
+$('alSave').addEventListener('click',function(){var v=+$('alTarget').value;if(!v||v<1){toast('Введи цену','error');return}
+alerts[state.slug]=v;save();$('alOverlay').hidden=true;unlock('alert1');toast('🔔 Алерт на '+v+' p установлен','success');notify('Алерт',$('alName').textContent+' ≤ '+v+' p','info')});
+/* ==================== ДАШБОРД ==================== */
+function renderDashHead(){$('dName').textContent=profile.name;$('dAvatar').src=profile.avatar==='img'?AVATAR_URL:'';
+if(profile.avatar!=='img'){$('dAvatar').style.background=profile.avatar;$('dAvatar').removeAttribute('src')}
+var lvl=levelOf(profile.xp),base=50*Math.pow(lvl-1,2),next=50*lvl*lvl;
+$('dLevel').textContent='Уровень '+lvl;$('dXpText').textContent=profile.xp+' XP';
+$('dXpBar').style.width=Math.min(100,Math.round((profile.xp-base)/Math.max(1,next-base)*100))+'%';
+$('dStreak').textContent='🔥 стрик: '+streak()+' дн.';
+$('profName').textContent=profile.name;$('profLvl').textContent='ур. '+lvl;$('profAva').src=AVATAR_URL}
+function streak(){var s=store.get('streak',{last:'',n:0});var t=today();if(s.last===t)return Math.max(1,s.n);
+var y=new Date(Date.now()-864e5).toISOString().slice(0,10);return s.last===y?s.n+1:1}
+(function(){var s=store.get('streak',{last:'',n:0});var t=today();var y=new Date(Date.now()-864e5).toISOString().slice(0,10);
+s={last:t,n:s.last===t?s.n:(s.last===y?s.n+1:1)};store.set('streak',s);if(s.n>=3)unlock('streak3')})();
+var TASKS=[{id:'search3',name:'Сделай 3 поиска',target:3,get:function(){return daily.searches},xp:30},
+{id:'fav1d',name:'Добавь предмет в избранное',target:1,get:function(){return daily.favs},xp:20},
+{id:'calc1d',name:'Посчитай калькулятор',target:1,get:function(){return daily.calc},xp:20}];
+function renderDash(){renderDashHead();$('taskDate').textContent='· '+today();
+var tl=$('tasksList');tl.innerHTML='';
+TASKS.forEach(function(t){var v=Math.min(t.target,t.get());var done=v>=t.target;var cl=daily.claimed[t.id];
+tl.insertAdjacentHTML('beforeend','<div class="row task"><span style="flex:1">'+(done?'✅':'⏳')+' '+t.name+' <span class="label">'+v+'/'+t.target+'</span></span>'+
+'<div class="tBar bar"><i style="width:'+Math.round(v/t.target*100)+'%"></i></div>'+
+(cl?'<span class="label">получено</span>':'<button class="btn sm" data-claim="'+t.id+'" '+(done?'':'disabled')+' style="'+(done?'':'opacity:.4;cursor:default')+'">+'+t.xp+' XP</button>')+'</div>')});
+tl.onclick=function(e){var b=e.target.closest('[data-claim]');if(!b)return;var id=b.getAttribute('data-claim');
+var t=null;TASKS.forEach(function(x){if(x.id===id)t=x});if(!t||daily.claimed[id])return;daily.claimed[id]=1;save();addXp(t.xp,'задание');notify('Задание выполнено',t.name,'gold');renderDash()};
+setChart('act','chartActivity',{type:'bar',data:{labels:['пн','вт','ср','чт','пт','сб','вс'],datasets:[{data:activity,backgroundColor:'rgba(109,228,255,.4)',borderRadius:6}]},
+options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(140,163,199,.12)'}},x:{grid:{display:false}}}}});
+var q={};searchesAll.forEach(function(s){q[s]=(q[s]||0)+1});var top=Object.keys(q).sort(function(a,b){return q[b]-q[a]}).slice(0,5);
+$('topQueries').innerHTML=top.length?top.map(function(k,i){return '<div class="row"><span class="medal mN">'+(i+1)+'</span><span style="flex:1">'+esc(k)+'</span><b>'+q[k]+'×</b></div>'}).join(''):'<div class="label">Пока нет истории поиска</div>';
+var deals=[['Купил Blind Rage ×2','−110 p','down'],['Продал Glaive Prime Blade','+175 p','up'],['Купил Axi V7 ×4','−80 p','down']];
+$('dealsList').innerHTML=deals.map(function(d){return '<div class="row"><span style="flex:1">'+d[0]+'</span><b style="color:var(--'+(d[2]==='up'?'up':'down')+')">'+d[1]+'</b></div>'}).join('');
+var br=$('badgesRow');br.innerHTML='';ACH.forEach(function(a){var un=ach.indexOf(a.id)!==-1;
+br.insertAdjacentHTML('beforeend','<span class="badgeIco'+(un?'':' lock')+'" data-tip="'+a.name+(un?'':' (закрыто)')+'">'+a.ico+'</span>')});
+var recs=DB.filter(function(x){return !isFav(x.slug)&&x.change>0}).sort(function(a,b){return b.change-a.change}).slice(0,4);
+var rr=$('recsRow');rr.innerHTML='';recs.forEach(function(x){rr.insertAdjacentHTML('beforeend',cardHTML(x))});
+rr.onclick=function(e){var c=e.target.closest('[data-slug]');if(c)openItem(c.getAttribute('data-slug'))}}
+/* ==================== РЕЙТИНГ ==================== */
+function renderRating(){var list=LEADERS.concat([{name:profile.name+' (ты)',xp:profile.xp,me:true}]).sort(function(a,b){return b.xp-a.xp});
+var L=$('ratingList');L.innerHTML='';
+list.forEach(function(u,i){var m=i===0?'m1':i===1?'m2':i===2?'m3':'mN';var md=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
+L.insertAdjacentHTML('beforeend','<div class="row'+(u.me?' meRow':'')+'"><span class="medal '+m+'">'+md+'</span><span style="flex:1">'+esc(u.name)+'</span><span class="label">ур. '+levelOf(u.xp)+'</span><b style="color:var(--gold)">'+fmt(u.xp)+' XP</b></div>')})}
+/* ==================== КАЛЬКУЛЯТОР ==================== */
+function methodPH(method,price,min,qty){price=Number(price)||0;min=Math.max(1,Number(min)||1);qty=Math.max(1,Number(qty)||1);return Math.round(price*qty/min*60)}
+function renderCalc(){var sel=$('calcMethod');
+if(!sel.options.length){METHODS.forEach(function(m){var o=document.createElement('option');o.value=m.id;o.textContent=m.name;sel.add(o)});
+DB.slice(0,8).forEach(function(it){var o=document.createElement('option');o.value='item:'+it.slug;o.textContent='Предмет: '+it.nameRu;sel.add(o)})}
+recalc();
+var all=METHODS.map(function(m){return{name:m.name,ph:methodPH(m,m.price,m.min,m.qty)}});
+all.sort(function(a,b){return b.ph-a.ph});var max=all[0].ph;
+$('methodsList').innerHTML=all.map(function(m){var tier=m.ph>=150?'tS':m.ph>=100?'tA':m.ph>=60?'tB':'tC';var t=m.ph>=150?'S':m.ph>=100?'A':m.ph>=60?'B':'C';
+return '<div class="row tierRow" style="margin-bottom:8px"><span class="tierTag '+tier+'">'+t+'</span><span style="flex:1">'+esc(m.name)+'<div class="mBar" style="margin-top:6px"><i style="width:'+Math.round(m.ph/max*100)+'%"></i></div></span><b style="color:var(--gold)">'+fmt(m.ph)+' p/ч</b></div>'}).join('')}
+function recalc(){var id=$('calcMethod').value;var it=null,m=null;
+if(id.indexOf('item:')===0)it=dbGet(id.slice(5));else METHODS.forEach(function(x){if(x.id===id)m=x});
+var price=Number($('cPrice').value)||(it?(Number(it.price)||1):(Number(m&&m.price)||1));var min=Number($('cTime').value)||(it?(Number(it.timeMin)||1):(Number(m&&m.min)||1));var qty=Number($('cQty').value)||1;
+var ph=methodPH(null,price,min,qty);$('cOut').textContent=fmt(ph)+' p/ч';
+$('cPerRun').textContent='за ран: '+fmt(price*qty)+' p · '+min+' мин';
+daily.calc=1;save();unlock('calc1')}
+['cPrice','cTime','cQty'].forEach(function(id){$(id).addEventListener('input',recalc)});
+$('calcMethod').addEventListener('change',recalc);
+/* ==================== РЕЛИКВИИ ==================== */
+function renderRelics(){var g=$('relicGrid');g.innerHTML='';
+RELICS.filter(function(r){return state.era==='all'||r.era===state.era}).forEach(function(r){
+g.insertAdjacentHTML('beforeend','<div class="gcard pcard" style="cursor:default"><div class="art">🏺</div><b>'+r.era+' · '+r.name+'</b>'+
+'<div class="en">'+r.drops.join(' · ')+'</div><div class="label" style="margin-top:6px">💡 '+r.advice+'</div></div>')})}
+$('eraChips').addEventListener('click',function(e){var c=e.target.closest('.chip');if(!c)return;
+document.querySelectorAll('#eraChips .chip').forEach(function(x){x.classList.remove('on')});c.classList.add('on');state.era=c.getAttribute('data-era');renderRelics()});
+/* ==================== АРБИТРАЖ ==================== */
+function renderArb(){var L=$('arbList');L.innerHTML='';
+var opp=DB.filter(function(it){return it.price}).map(function(it){var buy=Math.round(it.price*0.86);var sell=it.price;var margin=sell-buy;var roi=Math.round(margin/buy*100);return{it:it,buy:buy,sell:sell,roi:roi}})
+.filter(function(o){return o.roi>=8}).sort(function(a,b){return b.roi-a.roi}).slice(0,7);
+opp.forEach(function(o){L.insertAdjacentHTML('beforeend','<div class="row" style="margin-bottom:8px;cursor:pointer" data-open="'+o.it.slug+'">'+
+'<span style="flex:1"><b>'+esc(o.it.nameRu)+'</b><br><small class="label">купить '+o.buy+' p → продать '+o.sell+' p</small></span>'+
+'<span class="chg up">ROI '+o.roi+'%</span><button class="btn sm">Открыть</button></div>')});
+L.onclick=function(e){var r=e.target.closest('[data-open]');if(r)openItem(r.getAttribute('data-open'))}}
+/* ==================== ПОИСК + ПОДСКАЗКИ ==================== */
+var sTimer=null;
+function pushSearch(q){searchesAll.unshift(q);if(searchesAll.length>40)searchesAll.pop();daily.searches++;activity[6]++;save();unlock('search1')}
+$('globalSearch').addEventListener('input',function(e){clearTimeout(sTimer);var v=e.target.value;sTimer=setTimeout(function(){suggest(v);if(state.view==='market')renderMarket()},220)});
+$('globalSearch').addEventListener('focus',function(){suggest($('globalSearch').value)});
+function suggest(q){var box=$('suggestBox');q=norm(q);
+var local=marketSource().filter(function(it){return itemMatches(it,q)}).slice(0,8);
+box.innerHTML='';if(!q&&!local.length){box.hidden=true;return}
+box.hidden=false;
+local.forEach(function(it){box.insertAdjacentHTML('beforeend','<div data-slug="'+it.slug+'">'+CAT_ICON[it.cat]+' <span>'+esc(it.nameRu)+'</span><small>'+esc(it.name)+' · '+(hasPrice(it)?(it.livePrice==null?'≈':'')+fmt(it.price)+'p':'—')+'</small></div>')});
+if(q.length>2)api('/api/search?q='+encodeURIComponent(q)+'&platform=pc').then(function(d){
+var added=false;
+(d.items||[]).slice(0,8).forEach(function(raw){if(!dbGet(raw.slug)){CATALOG.push(catalogToItem(raw));DB=CATALOG;rebuildDbIndex();added=true}box.insertAdjacentHTML('beforeend','<div data-slug="'+esc(raw.slug)+'">🌐 <span>'+esc(raw.nameRu||raw.name||raw.slug)+'</span><small>'+esc(raw.name||raw.slug)+'</small></div>')});
+if(added&&state.view==='market')renderMarket()}).catch(function(){});
+box.onclick=function(e){var d=e.target.closest('[data-slug]');if(!d)return;box.hidden=true;$('globalSearch').value='';pushSearch(q||d.getAttribute('data-slug'));openItem(d.getAttribute('data-slug'))}}
+document.addEventListener('click',function(e){if(!e.target.closest('.searchWrap'))$('suggestBox').hidden=true;
+if(!e.target.closest('.dropWrap')){$('notifPanel').hidden=true;$('profPanel').hidden=true}});
+/* ==================== ПАЛИТРА + ХОТКЕИ ==================== */
+var palE=[],palA=0;
+function palActions(){return[
+{t:'нав',l:'Открыть: Рынок',r:function(){showView('market')}},
+{t:'нав',l:'Открыть: Дашборд',r:function(){showView('dash')}},
+{t:'нав',l:'Открыть: Рейтинг',r:function(){showView('rating')}},
+{t:'нав',l:'Открыть: Калькулятор',r:function(){showView('calc')}},
+{t:'нав',l:'Открыть: Реликвии',r:function(){showView('relics')}},
+{t:'нав',l:'Открыть: Арбитраж',r:function(){showView('arb')}},
+{t:'тема',l:'Тема: Космос',r:function(){setTheme('dark')}},
+{t:'тема',l:'Тема: Светлая',r:function(){setTheme('light')}},
+{t:'тема',l:'Тема: Платина',r:function(){setTheme('gold')}},
+{t:'профиль',l:'Настройки профиля',r:function(){$('setOverlay').hidden=false}}]}
+function palRender(){var L=$('palList');L.innerHTML='';
+if(!palE.length)L.innerHTML='<li class="palItem" style="color:var(--muted)">Ничего не найдено</li>';
+palE.forEach(function(en,i){var li=document.createElement('li');li.className='palItem'+(i===palA?' active':'');
+li.innerHTML='<span class="palType">'+en.t+'</span><span>'+esc(en.l)+'</span>';
+li.onclick=function(){closePal();en.r()};L.appendChild(li)})}
+function openPal(){$('palOverlay').hidden=false;palE=palActions();palA=0;palRender();setTimeout(function(){$('palInput').focus()},30)}
+function closePal(){$('palOverlay').hidden=true}
+$('palInput').addEventListener('input',function(e){var q=norm(e.target.value);
+palE=palActions().filter(function(a){return !q||norm(a.l).indexOf(q)!==-1});
+if(q.length>1)DB.filter(function(it){return norm(it.nameRu+' '+it.name).indexOf(q)!==-1}).slice(0,5).forEach(function(it){
+palE.push({t:'предмет',l:it.nameRu+' — '+it.name,r:function(){openItem(it.slug)}})});
+palA=0;palRender()});
+$('palInput').addEventListener('keydown',function(e){
+if(e.key==='ArrowDown'){palA=Math.min(palA+1,palE.length-1);palRender()}
+if(e.key==='ArrowUp'){palA=Math.max(palA-1,0);palRender()}
+if(e.key==='Enter'&&palE[palA]){closePal();palE[palA].r()}});
+document.addEventListener('keydown',function(e){
+if((e.ctrlKey||e.metaKey)&&norm(e.key)==='k'){e.preventDefault();$('palOverlay').hidden?openPal():closePal()}
+if(e.key==='/'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){e.preventDefault();$('globalSearch').focus()}
+if(e.key==='Escape'){closePal();$('setOverlay').hidden=true;$('alOverlay').hidden=true;$('aiOverlay').hidden=true;$('suggestBox').hidden=true}});
+var kkBuf=[],KONAMI=['arrowup','arrowup','arrowdown','arrowdown','arrowleft','arrowright','arrowleft','arrowright','b','a'];
+document.addEventListener('keydown',function(e){
+if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;
+kkBuf.push(e.key.toLowerCase());if(kkBuf.length>KONAMI.length)kkBuf.shift();
+if(kkBuf.join(',')===KONAMI.join(',')){kkBuf=[];notify('Тайный код Тенно','Древние Операторы узнают своих.','gold');toast('🎮 Секретный код активирован','gold');addXp(50,'секретный код')}
+});
+/* ==================== НАСТРОЙКИ ==================== */
+function setTheme(t){profile.theme=t;save();applyTheme();toast('Тема применена','info')}
+function applyTheme(){document.documentElement.setAttribute('data-theme',profile.theme)}
+var AVA_OPTS=[{id:'img',v:AVATAR_URL,label:'🖼'},{id:'g1',v:'linear-gradient(135deg,#22D3EE,#0B6C84)',label:''},{id:'g2',v:'linear-gradient(135deg,#F5C044,#8a5a2a)',label:''},{id:'g3',v:'linear-gradient(135deg,#8CA3C3,#31445f)',label:''}];
+function buildAvaRow(){var r=$('avaRow');r.innerHTML='';AVA_OPTS.forEach(function(o){var b=document.createElement('button');b.className='avaOpt'+(profile.avatar===o.id?' on':'');
+if(o.id==='img'){b.innerHTML='<img src="'+o.v+'" style="width:100%;height:100%;object-fit:cover">'}else{b.style.background=o.v;b.textContent='☺'}
+b.onclick=function(){profile.avatar=o.id;save();buildAvaRow();renderDashHead()};r.appendChild(b)})}
+$('openSetBtn').addEventListener('click',function(){$('profPanel').hidden=true;$('setName').value=profile.name;
+$('tgAlerts').checked=profile.notif.alerts;$('tgTasks').checked=profile.notif.tasks;$('tgStreaks').checked=profile.notif.streaks;
+buildAvaRow();$('setOverlay').hidden=false});
+$('setClose').addEventListener('click',function(){$('setOverlay').hidden=true});
+$('setSave').addEventListener('click',function(){profile.name=$('setName').value.trim()||'Оператор';
+profile.notif={alerts:$('tgAlerts').checked,tasks:$('tgTasks').checked,streaks:$('tgStreaks').checked};
+save();applyTheme();renderDashHead();$('setOverlay').hidden=true;toast('Настройки сохранены','success')});
+document.querySelectorAll('[data-settheme]').forEach(function(b){b.addEventListener('click',function(){setTheme(b.getAttribute('data-settheme'))})});
+/* ==================== ДРОПДАУНЫ ШАПКИ ==================== */
+function syncHeaderHeight(){var h=document.querySelector('header');if(h){document.documentElement.style.setProperty('--header-h',h.offsetHeight+'px')}}
+syncHeaderHeight();
+window.addEventListener('resize',syncHeaderHeight);
+window.addEventListener('orientationchange',function(){setTimeout(syncHeaderHeight,150)});
+$('bellBtn').addEventListener('click',function(){$('profPanel').hidden=true;$('notifPanel').hidden=!$('notifPanel').hidden});
+$('notifClear').addEventListener('click',function(){notifs.forEach(function(n){n.read=true});renderNotifs()});
+$('profBtn').addEventListener('click',function(){$('notifPanel').hidden=true;$('profPanel').hidden=!$('profPanel').hidden});
+$('openDashBtn').addEventListener('click',function(){$('profPanel').hidden=true;showView('dash')});
+$('logoBtn').addEventListener('click',function(){showView('market')});
+var trades=store.get('trades',[]);
+function saveTrades(){store.set('trades',trades)}
+function tradeProfit(t){return t.sell>0?Math.round((t.sell-t.buy)*t.qty):null}
+function jEl(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e}
+function renderJournal(){
+var closed=trades.filter(function(t){return t.sell>0}),open=trades.filter(function(t){return !(t.sell>0)});
+var profit=closed.reduce(function(a,t){return a+tradeProfit(t)},0),spent=closed.reduce(function(a,t){return a+t.buy*t.qty},0),frozen=open.reduce(function(a,t){return a+t.buy*t.qty},0);
+var cards=[['Чистая прибыль',(profit>0?'+':'')+fmt(profit)+' p',profit>=0?'var(--up)':'var(--down)'],['Закрыто сделок',fmt(closed.length)],['В обороте',fmt(Math.round(frozen))+' p'],['Средний ROI',(spent?Math.round(profit/spent*100):0)+'%']];
+var g=$('jStats');g.textContent='';
+cards.forEach(function(c){var d=jEl('div','gcard stat'),b=jEl('b',null,c[1]);if(c[2])b.style.color=c[2];d.appendChild(jEl('small',null,c[0]));d.appendChild(b);g.appendChild(d)});
+var box=$('jList');box.textContent='';
+if(!trades.length){box.appendChild(jEl('div','label','Пока пусто. Добавь первую сделку выше или нажми «В журнал» в карточке предмета.'));return}
+trades.slice().reverse().forEach(function(t){
+var p=tradeProfit(t),row=jEl('div','jRow'),info=jEl('div','jInfo');
+info.appendChild(jEl('b',null,t.name));
+info.appendChild(jEl('small','label',t.qty+' × '+fmt(t.buy)+' p'+(p===null?' · ждёт продажи':' → '+fmt(t.sell)+' p')+' · '+new Date(t.ts).toLocaleDateString('ru-RU')));
+row.appendChild(info);
+if(p===null){var sb=jEl('button','btn sm','Продано');sb.addEventListener('click',function(){var v=Number(String(prompt('Цена продажи за 1 шт., p','')||'').replace(',','.'));if(v>0){t.sell=v;saveTrades();addXp(3,'сделка закрыта');renderJournal()}});row.appendChild(sb)}
+else{var val=jEl('span','jVal',(p>0?'+':'')+fmt(p)+' p');val.style.color=p>=0?'var(--up)':'var(--down)';row.appendChild(val)}
+var del=jEl('button','btn sm','✕');del.setAttribute('aria-label','Удалить запись');del.addEventListener('click',function(){if(confirm('Удалить запись?')){trades=trades.filter(function(x){return x.id!==t.id});saveTrades();renderJournal()}});row.appendChild(del);
+box.appendChild(row)})}
+$('jAdd').addEventListener('click',function(){
+var name=$('jName').value.trim(),buy=Number($('jBuy').value),sell=Number($('jSell').value)||0,qty=Math.max(1,Math.floor(Number($('jQty').value)||1));
+if(!name||!(buy>0)){toast('Укажи предмет и цену покупки','info');return}
+trades.push({id:Date.now()+Math.random().toString(36).slice(2,6),ts:Date.now(),name:name.slice(0,60),buy:buy,sell:sell>0?sell:0,qty:qty});
+if(trades.length>500)trades.shift();saveTrades();
+['jName','jBuy','jSell'].forEach(function(id){$(id).value=''});$('jQty').value='1';
+if(sell>0)addXp(3,'сделка закрыта');renderJournal()});
+$('itJournalBtn').addEventListener('click',function(){showView('journal');$('jName').value=$('itSub').textContent||state.slug;$('jBuy').focus()});
+$('tabsNav').addEventListener('click',function(e){var t=e.target.closest('.tab');if(t){showView(t.getAttribute('data-view'));t.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'})}});
+/* ==================== СИМУЛЯЦИЯ ЖИВЫХ ЦЕН ==================== */
+setInterval(function(){if(catalogReady)return;var r=rng(Date.now()&0xffff);
+for(var i=0;i<3;i++){var it=DB[Math.floor(r()*DB.length)];var d=(r()-0.5)*2.4;it.price=Math.max(1,Math.round(it.price*(1+d/100)));it.change=Math.round((it.change+d)*10)/10;
+if(alerts[it.slug]&&profile.notif.alerts&&it.price<=alerts[it.slug]){toast('🔔 '+it.nameRu+' цена '+it.price+' p — цель достигнута!','gold');notify('Алерт',it.nameRu+' ≤ '+alerts[it.slug]+' p','gold');delete alerts[it.slug];save()}}
+renderTicker();
+if(state.view==='favs')renderFavs()},9000);
+/* ==================== INIT ==================== */
+applyTheme();renderTicker();renderNotifs();renderDashHead();
+$('favCnt').textContent=favs.length;
+showView('market');
+loadCatalog(true);
+api('/api/health').then(function(){state.apiOnline=true;$('apiChip').textContent='API: онлайн';$('apiChip').className='chipApi ok';notify('API подключен','warframe.market v2 + история сделок','ok')})
+.catch(function(){$('apiChip').textContent='API: демо';$('apiChip').className='chipApi bad';notify('Демо-режим','API недоступен — данные локальные','warn')});
+if(profile.notif.tasks)notify('Задания дня','3 поиска, избранное и калькулятор — забери XP','info');
+})();
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})})}</script>
+</body>
+</html>
