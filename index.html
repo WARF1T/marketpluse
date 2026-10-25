@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0B0F14">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.png" type="image/png">
+<link rel="apple-touch-icon" href="/icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MarketPulse">
 <title>MarketPulse — аналитика фарма платины Warframe</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/unbounded@latest/cyrillic.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/unbounded@latest/latin.css">
@@ -424,6 +430,39 @@ header>div:nth-of-type(4){grid-column:3;grid-row:1}
 .itActions .starBtn{width:44px;height:44px}
 #itAiBtn{grid-column:1/3}
 }
+.platRow{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+#platChips{display:flex;gap:6px}
+.platCmp{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.platCmp:empty{display:none}
+.platCell{display:grid;gap:2px;padding:10px;background:var(--card2);border:1px solid var(--line);border-radius:12px}
+.platCell small{color:var(--muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.platCell b{font-variant-numeric:tabular-nums}
+.platCell.best{border-color:var(--acc);box-shadow:0 0 14px color-mix(in srgb,var(--acc) 22%,transparent)}
+@media(max-width:420px){.platCmp{grid-template-columns:repeat(2,1fr)}}
+.siteFoot{max-width:1240px;margin:28px auto 0;padding:0 18px 24px;color:var(--muted);font-size:12px;line-height:1.5}
+@media(max-width:760px){
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:60;max-width:none;margin:0;padding:8px 6px calc(6px + env(safe-area-inset-bottom));gap:2px;background:linear-gradient(180deg,color-mix(in srgb,var(--bg1) 82%,transparent),color-mix(in srgb,var(--bg0) 94%,transparent));-webkit-backdrop-filter:blur(18px) saturate(1.3);backdrop-filter:blur(18px) saturate(1.3);border-top:1px solid var(--line2);box-shadow:0 -10px 30px rgba(0,0,0,.35);scrollbar-width:none;-webkit-mask-image:none;mask-image:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;min-width:74px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:7px 8px 6px;font-size:10.5px;letter-spacing:.02em;border-radius:14px;color:var(--muted);-webkit-tap-highlight-color:transparent}
+.tab::before{content:"";width:24px;height:24px;background-color:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat;transition:transform .25s cubic-bezier(.3,1.4,.5,1),filter .25s}
+.tab:active::before{transform:scale(.88)}
+.tab.on{color:var(--acc);background:linear-gradient(180deg,color-mix(in srgb,var(--acc) 15%,transparent),transparent)}
+.tab.on::before{transform:translateY(-1px) scale(1.1);filter:drop-shadow(0 0 7px color-mix(in srgb,var(--acc) 65%,transparent))}
+.tab.on::after{content:"";display:block;position:absolute;top:-9px;left:50%;right:auto;bottom:auto;width:26px;height:3px;border-radius:0 0 6px 6px;background:var(--acc);box-shadow:0 0 12px var(--acc);transform:translateX(-50%)}
+.tab .cnt{position:absolute;top:2px;right:14px;margin:0}
+.tab[data-view="market"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='1.8'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M3%2017l6-6%204%204%208-8'/%3E%3Cpath%20d='M15%207h6v6'/%3E%3C/svg%3E")}
+.tab[data-view="dash"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='1.8'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Crect%20x='3'%20y='3'%20width='7'%20height='9'%20rx='1.6'/%3E%3Crect%20x='14'%20y='3'%20width='7'%20height='5'%20rx='1.6'/%3E%3Crect%20x='14'%20y='12'%20width='7'%20height='9'%20rx='1.6'/%3E%3Crect%20x='3'%20y='16'%20width='7'%20height='5'%20rx='1.6'/%3E%3C/svg%3E")}
+.tab[data-view="rating"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='1.8'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M8%2021h8M12%2017v4'/%3E%3Cpath%20d='M7%204h10v5a5%205%200%200%201-10%200V4z'/%3E%3Cpath%20d='M7%206H4v2a3%203%200%200%200%203%203M17%206h3v2a3%203%200%200%201-3%203'/%3E%3C/svg%3E")}
+.tab[data-view="calc"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='1.8'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Crect%20x='5'%20y='3'%20width='14'%20height='18'%20rx='2.4'/%3E%3Cpath%20d='M8%207.5h8'/%3E%3Cpath%20d='M8.5%2012h.01M12%2012h.01M15.5%2012h.01M8.5%2016h.01M12%2016h.01M15.5%2016h.01'%20stroke-width='2.4'/%3E%3C/svg%3E")}
+.tab[data-view="relics"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='1.8'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%202.8l7.5%204.2v8.6L12%2020l-7.5-4.4V7z'/%3E%3Cpath%20d='M4.8%207.2L12%2011.4l7.2-4.2M12%2011.4V20'/%3E%3C/svg%3E")}
+.tab[data-view="arb"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='1.8'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M4%208h15M15%204l4%204-4%204'/%3E%3Cpath%20d='M20%2016H5M9%2012l-4%204%204%204'/%3E%3C/svg%3E")}
+.tab[data-view="journal"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='1.8'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Crect%20x='5'%20y='3'%20width='14'%20height='18'%20rx='2.2'/%3E%3Cpath%20d='M9%208h6M9%2012h6M9%2016h3'/%3E%3C/svg%3E")}
+.tab[data-view="favs"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='1.8'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%203.6l2.6%205.3%205.8.8-4.2%204.1%201%205.8L12%2016.9l-5.2%202.7%201-5.8L3.6%209.7l5.8-.8L12%203.6z'/%3E%3C/svg%3E")}
+body{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+}
+.tgBox{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.tgForm{display:flex;gap:8px}
+.tgForm .jIn{min-width:0}
 </style>
 </head>
 <body>
@@ -482,6 +521,7 @@ header>div:nth-of-type(4){grid-column:3;grid-row:1}
 <div class="heroDots" id="heroDots"></div>
 <div class="heroNav"><button id="heroPrev">‹</button><button id="heroNext">›</button></div>
 </div>
+<div class="platRow"><span class="label">Платформа</span><div id="platChips"><button class="chip on" data-plat="pc">PC</button><button class="chip" data-plat="ps4">PS4</button><button class="chip" data-plat="xbox">Xbox</button><button class="chip" data-plat="switch">Switch</button></div></div>
 <div class="toolbar">
 <div id="filterChips" style="display:flex;gap:7px;flex-wrap:wrap">
 <button class="chip on" data-cat="all">Все</button>
@@ -509,7 +549,7 @@ header>div:nth-of-type(4){grid-column:3;grid-row:1}
 </section>
 <!-- ================= ПРЕДМЕТ ================= -->
 <section class="view" id="view-item" hidden>
-<button class="btn sm" id="backBtn" style="margin-bottom:14px">← На рынок</button>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><button class="btn sm" id="backBtn" style="margin-bottom:14px">← На рынок</button><button class="btn sm" id="itShareBtn" style="margin-bottom:14px" data-tip="Поделиться">↗ Поделиться</button></div>
 <div class="gcard pad itHead">
 <div class="itArt" id="itArt">◆</div>
 <div style="flex:1;min-width:200px">
@@ -544,7 +584,7 @@ header>div:nth-of-type(4){grid-column:3;grid-row:1}
 </div>
 </div>
 <canvas id="chartPrice" class="chart"></canvas>
-<div class="label" style="margin-top:6px">Модель на основе текущей цены, не архив реальных сделок</div>
+<div class="label" id="chartNote" style="margin-top:6px">Модель на основе текущей цены, не архив реальных сделок</div>
 </div>
 <div class="gcard pad">
 <h3 style="margin:0 0 12px;font-size:14px">Рейтинг спроса</h3>
@@ -571,7 +611,14 @@ header>div:nth-of-type(4){grid-column:3;grid-row:1}
 <div class="wspTabs"><button class="chip on" data-offers="sell">Продают</button><button class="chip" data-offers="buy">Покупают</button></div>
 </div>
 <div id="itOffersList"></div>
-<div class="label" style="margin-top:8px">Игроки в сети. Нажми на строку, и сообщение /w для игры скопируется.</div>
+<div class="label" style="margin-top:8px;text-transform:none">Игроки в сети. Нажми на строку, и сообщение /w для игры скопируется.</div>
+</div>
+<div class="gcard pad" style="margin-top:14px">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+<h3 style="margin:0;font-size:14px">Цены по платформам</h3>
+<button class="btn sm" id="platCmpBtn">Сравнить</button>
+</div>
+<div class="platCmp" id="platCmp"></div>
 </div>
 <div class="gcard pad" style="margin-top:14px">
 <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
@@ -697,11 +744,17 @@ header>div:nth-of-type(4){grid-column:3;grid-row:1}
 </div>
 <div class="statGrid" id="jStats" style="margin-top:14px"></div>
 <div class="gcard pad" style="margin-top:14px"><div id="jList"></div></div>
+<div class="gcard pad" style="margin-top:14px">
+<h3 style="margin:0 0 4px;font-size:14px">Резервная копия</h3>
+<div class="label" style="margin-bottom:10px">Журнал, избранное, алерты и прогресс хранятся только в этом браузере. Сохрани копию, чтобы не потерять их при очистке данных или смене телефона.</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" id="bkExport">⬇ Сохранить копию</button><button class="btn sm" id="bkImport">⬆ Загрузить копию</button><input type="file" id="bkFile" accept="application/json,.json" hidden></div>
+</div>
 </section>
 </main>
 <footer>
 <span>© 2026 MarketPulse · аналитика, а не копия Warframe.market</span>
 <span>данные: warframe.market API v2 + история сделок · экспорт CSV доступен</span>
+<span>Неофициальный проект. Warframe — торговая марка Digital Extremes Ltd. Подсказки ИИ не гарантируют прибыль.</span>
 </footer>
 <!-- настройки -->
 <div class="overlay" id="setOverlay" hidden>
@@ -735,6 +788,11 @@ header>div:nth-of-type(4){grid-column:3;grid-row:1}
 <button class="btn sm" id="alRemove">Убрать</button>
 <button class="btn sm" id="alClose">Отмена</button>
 <button class="btn primary sm" id="alSave">Сохранить</button>
+</div>
+<div class="tgBox" id="tgBox" style="display:none">
+<div class="label" id="tgStatus" style="margin-bottom:8px;text-transform:none">Telegram: не подключён</div>
+<div class="tgForm" id="tgForm"><input type="password" class="jIn" id="tgKey" placeholder="Ключ доступа" autocomplete="off"><button class="btn sm" id="tgConnect">Подключить</button></div>
+<button class="btn sm" id="tgOff" style="display:none">Отключить Telegram</button>
 </div>
 </div>
 </div>
@@ -806,7 +864,7 @@ var searchesAll=store.get('searches',[]);
 var activity=store.get('activity',[3,5,2,6,4,7,1]);
 var viewedItems=store.get('viewedItems',{});
 var state={view:'market',cat:'all',sort:'profit',slug:null,compare:[],period:'24h',era:'all',apiOnline:false};
-function save(){store.set('profile',profile);store.set('favs',favs);store.set('alerts',alerts);store.set('ach',ach);store.set('daily',daily);store.set('searches',searchesAll);store.set('activity',activity)}
+function save(){store.set('profile',profile);store.set('favs',favs);store.set('alerts',alerts);store.set('ach',ach);store.set('daily',daily);store.set('searches',searchesAll);store.set('activity',activity);tgSyncSoon()}
 function today(){return new Date().toISOString().slice(0,10)}
 if(daily.date!==today()){daily={date:today(),searches:0,favs:0,calc:0,claimed:{}};save()}
 function levelOf(xp){return Math.floor(Math.sqrt(xp/50))+1}
@@ -865,17 +923,23 @@ var old=by[x.slug];if(old){if(old.livePrice!=null){x.livePrice=old.livePrice;x.p
 });
 CATALOG=Object.keys(by).map(function(k){return by[k]});DB=CATALOG;rebuildDbIndex();catalogVersion++;
 }
+var PLATFORMS=['pc','ps4','xbox','switch'],PLAT_NAMES={pc:'PC',ps4:'PS4',xbox:'Xbox',switch:'Switch'};
+var platform=store.get('platform','pc');if(PLATFORMS.indexOf(platform)<0)platform='pc';
+function syncPlatChips(){document.querySelectorAll('#platChips .chip').forEach(function(b){b.classList.toggle('on',b.dataset.plat===platform)})}
+function setPlatform(p){if(p===platform||PLATFORMS.indexOf(p)<0)return;platform=p;store.set('platform',p);offersCache={};syncPlatChips();$('platCmp').textContent='';var go=function(){if(catalogLoading){setTimeout(go,150);return}loadCatalog(true)};go();toast('Платформа: '+PLAT_NAMES[p],'gold')}
+$('platChips').addEventListener('click',function(e){var b=e.target.closest('.chip');if(b)setPlatform(b.dataset.plat)});
+syncPlatChips();
 async function loadCatalog(reset){
 if(catalogLoading)return;catalogLoading=true;
 if(reset){CATALOG=[];catalogOffset=0;catalogTotal=0;catalogReady=false}
-try{var params='?platform=pc&offset='+catalogOffset+'&limit='+catalogRenderLimit;
+try{var params='?platform='+platform+'&offset='+catalogOffset+'&limit='+catalogRenderLimit;
 if(catalogFilters.cat!=='all')params+='&category='+encodeURIComponent(catalogFilters.cat);if(catalogFilters.prime)params+='&prime=1';
 var d=await api('/api/items'+params),arr=Array.isArray(d.items)?d.items:[];mergeCatalogItems(arr);catalogTotal=Number(d.total)||CATALOG.length;catalogOffset+=arr.length;catalogReady=true;
 $('apiChip').textContent='API: '+fmt(catalogTotal);$('apiChip').className='chipApi ok';renderMarket();renderTicker();
 }catch(e){console.warn('Catalog load failed',e);if(!CATALOG.length)catalogReady=false}finally{catalogLoading=false}
 }
 async function loadMoreCatalog(){if(catalogLoadingMore||catalogOffset>=catalogTotal)return;catalogLoadingMore=true;
-try{var params='?platform=pc&offset='+catalogOffset+'&limit='+catalogRenderLimit;if(catalogFilters.cat!=='all')params+='&category='+encodeURIComponent(catalogFilters.cat);if(catalogFilters.prime)params+='&prime=1';
+try{var params='?platform='+platform+'&offset='+catalogOffset+'&limit='+catalogRenderLimit;if(catalogFilters.cat!=='all')params+='&category='+encodeURIComponent(catalogFilters.cat);if(catalogFilters.prime)params+='&prime=1';
 var d=await api('/api/items'+params),arr=Array.isArray(d.items)?d.items:[];mergeCatalogItems(arr);catalogTotal=Number(d.total)||catalogTotal;catalogOffset+=arr.length;renderMarket();
 }catch(e){console.warn('Catalog page failed',e)}finally{catalogLoadingMore=false}
 }
@@ -912,11 +976,11 @@ sellDepth:vol*3,buyDepth:vol*2,medianSell:ms,medianBuy:mb,lowestSell:ms,highestB
 verdict:score>=85?'Очень ликвидный':score>=70?'Хороший оборот':score>=50?'Средний оборот':'Низкая ликвидность',
 demandPct:Math.min(100,Math.round(vol/4)),supplyPct:Math.min(100,Math.round(100-spread*3)),confidence:Math.min(100,40+vol/5),sellPrices:[],buyPrices:[],
 liquidityScore:50,liquidityLabel:'Демо-оценка',riskScore:50,riskLabel:'Оценка в демо-режиме',flipScore:50,recommendedVolume:1,analysisConfidence:'low',paybackScore:50,advice:'Демо-рекомендация. Для точного анализа нужны live-ордера.'}}
-async function liveItem(slug){try{var data=await api('/api/item/'+encodeURIComponent(slug)+'?platform=pc');if(data&&data.statsRateLimited===true){data.rateLimited=true}return data}catch(error){if(error.status===429){return{rateLimited:true,stats:null}}console.warn('Не удалось загрузить предмет:',slug,error);return null}}
-async function liveItemDetail(slug){try{return await api('/api/item-detail/'+encodeURIComponent(slug)+'?platform=pc')}catch(error){if(error.status===429){return{rateLimited:true}}console.warn('Не удалось загрузить детали предмета:',slug,error);return null}}
-async function livePrice(slug){try{return await api('/api/price/'+encodeURIComponent(slug)+'?platform=pc')}catch(error){if(error.status===429){console.warn('API rate limit для цены:',slug)}else{console.warn('Не удалось загрузить цену:',slug,error)}return null}}
+async function liveItem(slug){try{var data=await api('/api/item/'+encodeURIComponent(slug)+'?platform='+platform);if(data&&data.statsRateLimited===true){data.rateLimited=true}return data}catch(error){if(error.status===429){return{rateLimited:true,stats:null}}console.warn('Не удалось загрузить предмет:',slug,error);return null}}
+async function liveItemDetail(slug){try{return await api('/api/item-detail/'+encodeURIComponent(slug)+'?platform='+platform)}catch(error){if(error.status===429){return{rateLimited:true}}console.warn('Не удалось загрузить детали предмета:',slug,error);return null}}
+async function livePrice(slug){try{var p0=platform,r0=await api('/api/price/'+encodeURIComponent(slug)+'?platform='+platform);return p0===platform?r0:null}catch(error){if(error.status===429){console.warn('API rate limit для цены:',slug)}else{console.warn('Не удалось загрузить цену:',slug,error)}return null}}
 async function askAi(it){
-var payload={slug:it.slug,platform:'pc',name:it.name||'',nameRu:it.nameRu||''};
+var payload={slug:it.slug,platform:platform,name:it.name||'',nameRu:it.nameRu||''};
 return await api('/api/ai/analyze',payload,30000);
 }
 function genHistory(slug,base,points,trend){var r=rng(hash(slug)+points);var out=[];var v=base*(1-trend/100);
@@ -967,7 +1031,7 @@ $('heroPrev').addEventListener('click',function(){heroGo(heroIdx-1)});$('heroNex
 heroTimer=setInterval(function(){heroGo(heroIdx+1)},6000)}
 function heroGo(index){heroIdx=(index+SLIDES.length)%SLIDES.length;var slides=document.querySelectorAll('.heroSlide');var dots=$('heroDots').children;for(var i=0;i<slides.length;i++){slides[i].classList.toggle('on',i===heroIdx)}for(var j=0;j<dots.length;j++){dots[j].classList.toggle('on',j===heroIdx)}}
 /* ==================== РОУТЕР ==================== */
-function showView(v){state.view=v;
+function showView(v){state.view=v;if(v!=='item'&&location.hash.indexOf('#item/')===0){try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}}
 document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('on',t.getAttribute('data-view')===v||(v==='item'&&t.getAttribute('data-view')==='market'))});
 ['market','item','dash','rating','calc','relics','arb','favs','journal'].forEach(function(k){var s=$('view-'+k);s.hidden=k!==v;if(k===v){s.classList.remove('view');void s.offsetWidth;s.classList.add('view')}});
 if(v==='market')renderMarket();if(v==='dash')renderDash();if(v==='rating')renderRating();
@@ -1120,9 +1184,17 @@ function copyText(text){if(navigator.clipboard&&window.isSecureContext){return n
 function offerWhisper(o){var nm=$('itSub').textContent||state.slug;return '/w '+o.name+' Hi! I want to '+(offersMode==='sell'?'buy':'sell')+': "'+nm+'" for '+o.platinum+' platinum. (warframe.market)'}
 function offersMsg(text){var box=$('itOffersList');box.textContent='';var e=document.createElement('div');e.className='label';e.style.marginTop='8px';e.textContent=text;box.appendChild(e)}
 function renderOffers(){var d=offersCache[state.slug];if(!d)return;var list=d[offersMode]||[];if(!list.length){offersMsg('Нет игроков в сети с такими ордерами.');return}var box=$('itOffersList');box.textContent='';list.forEach(function(o){var b=document.createElement('button');b.type='button';b.className='wspRow';[['wspDot'+(o.status==='ingame'?' on':''),''],['wspName',o.name],['wspQty','×'+o.quantity],['wspPrice',fmt(o.platinum)+' p'],['wspCopy','📋 /w']].forEach(function(p){var s=document.createElement('span');s.className=p[0];s.textContent=p[1];b.appendChild(s)});b.addEventListener('click',function(){var t=offerWhisper(o);copyText(t).then(function(){toast('Скопировано: /w '+o.name,'gold')},function(){toast('Не удалось скопировать','info')})});box.appendChild(b)})}
-async function loadOffers(slug){offersMsg('Загрузка…');try{var d=await api('/api/orders/'+encodeURIComponent(slug)+'?platform=pc');if(state.slug!==slug)return;offersCache[slug]=d;renderOffers()}catch(e){if(state.slug===slug){offersMsg(e&&e.status===429?'API временно ограничен, попробуй через минуту.':'Не удалось загрузить предложения.')}}}
+async function loadOffers(slug){offersMsg('Загрузка…');try{var d=await api('/api/orders/'+encodeURIComponent(slug)+'?platform='+platform);if(state.slug!==slug)return;offersCache[slug]=d;renderOffers()}catch(e){if(state.slug===slug){offersMsg(e&&e.status===429?'API временно ограничен, попробуй через минуту.':'Не удалось загрузить предложения.')}}}
 document.querySelectorAll('[data-offers]').forEach(function(b){b.addEventListener('click',function(){offersMode=b.dataset.offers;document.querySelectorAll('[data-offers]').forEach(function(x){x.classList.toggle('on',x===b)});renderOffers()})});
-async function openItem(slug){var requestId=++itemRequestId;state.slug=slug;var it=dbGet(slug);
+var historyCache={};
+function realSeries(h){var p=state.period,src=p==='24h'?(h.hours||[]).slice(-24):p==='7d'?(h.days||[]).slice(-7):(h.days||[]).slice(-30);
+if(src.length<2)return null;var pad=function(n){return('0'+n).slice(-2)};
+return{prices:src.map(function(e){return e.median||e.avg||0}),vols:src.map(function(e){return e.volume||0}),labels:src.map(function(e){var d=new Date(e.t);return p==='24h'?pad(d.getHours())+':00':pad(d.getDate())+'.'+pad(d.getMonth()+1)})}}
+function cachedReal(slug){var h=historyCache[platform+':'+slug];return h?realSeries(h):undefined}
+async function loadHistory(slug){var key=platform+':'+slug;if(historyCache[key])return;var h=null;
+try{h=await api('/api/history/'+encodeURIComponent(slug)+'?platform='+platform)}catch(e){return}
+if(!h)return;historyCache[key]=h;var ctx=window._chartCtx;if(!ctx||state.slug!==slug||ctx.it.slug!==slug)return;var real=realSeries(h);if(real)drawPriceChart(ctx.it,ctx.st,real)}
+async function openItem(slug){var requestId=++itemRequestId;state.slug=slug;try{history.replaceState(null,'','#item/'+encodeURIComponent(slug))}catch(e){}var it=dbGet(slug);
 var pseudo=it||{slug:slug,name:slug,nameRu:slug,cat:'mods',price:0,change:0,volume:50,farm:'уточняется',timeMin:0};
 showView('item');
 $('itArt').innerHTML=pseudo.thumb?imageHTML(pseudo.thumb,pseudo.name||pseudo.slug):'<span class="imageFallback">'+(CAT_ICON[pseudo.cat]||'◆')+'</span>';
@@ -1172,7 +1244,7 @@ $('itStats').innerHTML=
 '<div class="gcard stat"><small>Ликвидность</small><b class="gold">'+fmt(st.liquidityScore)+'/100</b></div>'+
 '<div class="gcard stat"><small>Риск зависания</small><b>'+fmt(st.riskScore)+'/100</b></div>'+
 '<div class="gcard stat"><small>Рейтинг флипа</small><b class="gold">'+fmt(st.flipScore)+'/100</b></div>';
-loadOffers(slug);$('itScore').textContent=fmt(st.score);
+loadOffers(slug);$('platCmp').textContent='';$('itScore').textContent=fmt(st.score);
 $('itDial').style.background='conic-gradient(var(--acc) '+(st.score*3.6)+'deg, rgba(255,255,255,.08) 0)';
 $('bDemand').style.width=(st.demandPct||0)+'%';$('bSupply').style.width=(st.supplyPct||0)+'%';$('bPayback').style.width=pb+'%';
 $('itVerdict').textContent=st.verdict||'—';
@@ -1190,18 +1262,19 @@ if(isRateLimited){adviceText='API временно ограничен. Пока�
 else if(d&&d.statsError&&!isLive){adviceText='Live-ордера недоступны. Показана демо-оценка.'}
 $('itAdviceText').textContent=adviceText;
 $('itAdviceMeta').textContent=adviceMeta.join(' · ');
-drawPriceChart(pseudo,st);renderCompare();renderSimilar(pseudo);
+window._chartCtx={it:pseudo,st:st};drawPriceChart(pseudo,st,cachedReal(slug));loadHistory(slug);renderCompare();renderSimilar(pseudo);
 activity[6]+=0; save()}
 function syncItFav(){$('itFavBtn').classList.toggle('on',isFav(state.slug))}
-function drawPriceChart(it,st){var pts=state.period==='24h'?24:state.period==='7d'?28:30;
+function drawPriceChart(it,st,real){var pts=state.period==='24h'?24:state.period==='7d'?28:30;
 var base=st.medianSell||it.price||50;var hist=genHistory(it.slug,base,pts,it.change);
 var vols=genHistory(it.slug+'v',Math.max(5,it.volume/4),pts,2);
 var labels=[];for(var i=0;i<pts;i++)labels.push(state.period==='24h'?i+':00':'д'+(i+1));
+if(real){hist=real.prices;vols=real.vols;labels=real.labels}
 setChart('price','chartPrice',{data:{labels:labels,datasets:[
 {type:'line',label:'Цена',data:hist,borderColor:'#6de4ff',backgroundColor:'rgba(109,228,255,.12)',fill:true,tension:.35,pointRadius:0,borderWidth:2},
 {type:'bar',label:'Объём',data:vols,backgroundColor:'rgba(109,228,255,.25)',yAxisID:'y1'}]},
 options:{responsive:true,maintainAspectRatio:false,scales:{y:{grid:{color:'rgba(140,163,199,.12)'}},y1:{position:'right',grid:{display:false}},x:{grid:{display:false}}},plugins:{legend:{labels:{color:'#8CA3C3'}}}}});
-window._lastHist=hist}
+window._lastHist=hist;var cn=$('chartNote');if(cn)cn.textContent=real?'Реальные закрытые сделки warframe.market: медиана цены и объём':'Модель на основе текущей цены, не архив реальных сделок'}
 document.querySelectorAll('.periodBtns .chip').forEach(function(b){b.addEventListener('click',function(){
 document.querySelectorAll('.periodBtns .chip').forEach(function(x){x.classList.remove('on')});b.classList.add('on');
 state.period=b.getAttribute('data-period');if(state.slug){var it=dbGet(state.slug);openItem(state.slug)}})});
@@ -1239,7 +1312,7 @@ state.compare.forEach(function(s){var it=dbGet(s)||{nameRu:s};var d=document.cre
 d.innerHTML=esc(it.nameRu)+' <button data-rm="'+s+'">✕</button>';tray.appendChild(d)});
 tray.onclick=function(e){var b=e.target.closest('[data-rm]');if(b){state.compare=state.compare.filter(function(x){return x!==b.getAttribute('data-rm')});renderCompare()}};
 var ds=state.compare.map(function(s,i){var it=dbGet(s)||{price:50};var col=['#6de4ff','#62e6a8','#ffd166'][i];
-return{label:(it.nameRu||s),data:genHistory(s,it.price||50,24,it?it.change:0),borderColor:col,backgroundColor:'transparent',tension:.35,pointRadius:0,borderWidth:2}});
+return{label:(it.nameRu||s),data:compareData(s,it),borderColor:col,backgroundColor:'transparent',tension:.35,pointRadius:0,borderWidth:2}});
 setChart('cmp','chartCompare',{type:'line',data:{labels:Array.from({length:24},function(_,i){return i+':00'}),datasets:ds},
 options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8CA3C3'}}},scales:{y:{grid:{color:'rgba(140,163,199,.12)'}},x:{grid:{display:false}}}}})}
 function renderSimilar(it){var row=$('similarRow');row.innerHTML='';
@@ -1334,7 +1407,7 @@ var local=marketSource().filter(function(it){return itemMatches(it,q)}).slice(0,
 box.innerHTML='';if(!q&&!local.length){box.hidden=true;return}
 box.hidden=false;
 local.forEach(function(it){box.insertAdjacentHTML('beforeend','<div data-slug="'+it.slug+'">'+CAT_ICON[it.cat]+' <span>'+esc(it.nameRu)+'</span><small>'+esc(it.name)+' · '+(hasPrice(it)?(it.livePrice==null?'≈':'')+fmt(it.price)+'p':'—')+'</small></div>')});
-if(q.length>2)api('/api/search?q='+encodeURIComponent(q)+'&platform=pc').then(function(d){
+if(q.length>2)api('/api/search?q='+encodeURIComponent(q)+'&platform='+platform).then(function(d){
 var added=false;
 (d.items||[]).slice(0,8).forEach(function(raw){if(!dbGet(raw.slug)){CATALOG.push(catalogToItem(raw));DB=CATALOG;rebuildDbIndex();added=true}box.insertAdjacentHTML('beforeend','<div data-slug="'+esc(raw.slug)+'">🌐 <span>'+esc(raw.nameRu||raw.name||raw.slug)+'</span><small>'+esc(raw.name||raw.slug)+'</small></div>')});
 if(added&&state.view==='market')renderMarket()}).catch(function(){});
@@ -1434,6 +1507,45 @@ if(trades.length>500)trades.shift();saveTrades();
 ['jName','jBuy','jSell'].forEach(function(id){$(id).value=''});$('jQty').value='1';
 if(sell>0)addXp(3,'сделка закрыта');renderJournal()});
 $('itJournalBtn').addEventListener('click',function(){showView('journal');$('jName').value=$('itSub').textContent||state.slug;$('jBuy').focus()});
+function renderPlatCmp(rows){var box=$('platCmp');box.textContent='';var vals=rows.map(function(r){return r[1]}).filter(function(v){return v>0}),best=vals.length?Math.min.apply(null,vals):0;rows.forEach(function(r){var c=jEl('div','platCell'+(r[1]>0&&r[1]===best?' best':''));c.appendChild(jEl('small',null,PLAT_NAMES[r[0]]));c.appendChild(jEl('b',null,r[1]>0?fmt(r[1])+' p':'—'));box.appendChild(c)})}
+async function comparePlatforms(){var slug=state.slug,btn=$('platCmpBtn'),rows=[];btn.disabled=true;
+for(var i=0;i<PLATFORMS.length;i++){var p=PLATFORMS[i],price=null;try{var r=await api('/api/price/'+encodeURIComponent(slug)+'?platform='+p);if(r&&r.available)price=r.price}catch(e){}
+if(state.slug!==slug){btn.disabled=false;return}rows.push([p,price]);renderPlatCmp(rows)}
+btn.disabled=false}
+$('platCmpBtn').addEventListener('click',comparePlatforms);
+function exportBackup(){var out={};for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k.indexOf('mp2_')===0&&k!=='mp2_tgKey')out[k]=localStorage.getItem(k)}
+var blob=new Blob([JSON.stringify({app:'marketpulse',v:1,ts:Date.now(),data:out})],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='marketpulse-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},1500);toast('Резервная копия сохранена','gold')}
+$('bkExport').addEventListener('click',exportBackup);
+$('bkImport').addEventListener('click',function(){$('bkFile').click()});
+$('bkFile').addEventListener('change',function(){var f=this.files&&this.files[0];this.value='';if(!f)return;if(f.size>2e6){toast('Файл слишком большой','info');return}
+var rd=new FileReader();rd.onload=function(){try{var o=JSON.parse(rd.result);if(!o||o.app!=='marketpulse'||!o.data||typeof o.data!=='object')throw 0;
+var keys=Object.keys(o.data).filter(function(k){return k.indexOf('mp2_')===0&&typeof o.data[k]==='string'&&o.data[k].length<1e6});if(!keys.length)throw 0;
+if(!confirm('Заменить текущие данные копией ('+keys.length+' записей)?'))return;keys.forEach(function(k){localStorage.setItem(k,o.data[k])});location.reload()}catch(e){toast('Это не копия MarketPulse','info')}};rd.readAsText(f)});
+async function shareItem(){var slug=state.slug;if(!slug)return;var url=location.origin+location.pathname+'#item/'+encodeURIComponent(slug),name=$('itSub').textContent||slug;
+if(navigator.share){try{await navigator.share({title:'MarketPulse · '+name,text:name+' на MarketPulse',url:url});return}catch(e){if(e&&e.name==='AbortError')return}}
+copyText(url).then(function(){toast('Ссылка скопирована','gold')},function(){toast('Не удалось скопировать','info')})}
+$('itShareBtn').addEventListener('click',shareItem);
+(function(){var m=/^#item\/(.+)$/.exec(location.hash);if(m){setTimeout(function(){try{openItem(decodeURIComponent(m[1]))}catch(e){}},700)}})();
+var tg={enabled:false,key:store.get('tgKey','')},tgLast='',tgT=0,compareTried={};
+function compareData(s,it){var k=platform+':'+s,h=historyCache[k];if(h&&(h.hours||[]).length>=2)return h.hours.slice(-24).map(function(e){return e.median||e.avg||0});
+if(!compareTried[k]){compareTried[k]=1;loadHistory(s).then(function(){if(state.compare.indexOf(s)>=0)renderCompare()})}
+return genHistory(s,it.price||50,24,it?it.change:0)}
+function tgRender(){var box=$('tgBox');box.style.display=tg.enabled?'block':'none';if(!tg.enabled)return;var on=!!tg.key;
+$('tgStatus').textContent=on?'Telegram подключён: алерты придут, даже когда сайт закрыт':'Telegram: не подключён';
+$('tgForm').style.display=on?'none':'flex';$('tgOff').style.display=on?'inline-flex':'none'}
+function tgPost(url,body){return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json().catch(function(){return{}}).then(function(j){return{ok:r.ok,j:j}})})}
+function tgSync(){if(!tg.enabled||!tg.key)return Promise.resolve();
+var list=Object.keys(alerts).map(function(s){return{slug:s,target:alerts[s],name:(dbGet(s)||{}).nameRu||s}});
+return tgPost('/api/tg/sync',{key:tg.key,platform:platform,alerts:list}).then(function(x){
+if(!x.ok){if(x.j&&x.j.error==='bad key'){tg.key='';store.set('tgKey','');tgRender()}return}
+var fired=(x.j.fired||[]).filter(function(s){return alerts[s]});
+if(fired.length){fired.forEach(function(s){toast('🔔 Алерт сработал: '+((dbGet(s)||{}).nameRu||s),'gold');delete alerts[s]});save();tgLast='';tgSync()}}).catch(function(){})}
+function tgSyncSoon(){if(!tg||!tg.enabled||!tg.key)return;var s=JSON.stringify(alerts)+platform;if(s===tgLast)return;tgLast=s;clearTimeout(tgT);tgT=setTimeout(tgSync,1200)}
+$('tgConnect').addEventListener('click',function(){var k=$('tgKey').value.trim();if(!k)return;
+tgPost('/api/tg/test',{key:k}).then(function(x){if(x.ok){tg.key=k;store.set('tgKey',k);$('tgKey').value='';tgRender();tgLast='';tgSync();toast('Telegram подключён','success')}else toast(x.j&&x.j.error==='bad key'?'Неверный ключ':'Не удалось отправить сообщение в Telegram','error')}).catch(function(){toast('Сервер недоступен','error')})});
+$('tgOff').addEventListener('click',function(){var k=tg.key;tg.key='';store.set('tgKey','');tgRender();if(k)tgPost('/api/tg/sync',{key:k,platform:platform,alerts:[]}).catch(function(){});toast('Telegram отключён','info')});
+fetch('/api/tg/status').then(function(r){return r.json()}).then(function(j){tg.enabled=!!j.enabled;tgRender();tgSync()}).catch(function(){});
+document.addEventListener('visibilitychange',function(){if(!document.hidden){tgLast='';tgSync()}});
 $('tabsNav').addEventListener('click',function(e){var t=e.target.closest('.tab');if(t){showView(t.getAttribute('data-view'));t.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'})}});
 /* ==================== СИМУЛЯЦИЯ ЖИВЫХ ЦЕН ==================== */
 setInterval(function(){if(catalogReady)return;var r=rng(Date.now()&0xffff);
