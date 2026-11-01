@@ -18,6 +18,9 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_FILE = os.path.join(BASE_DIR, 'public', 'index.html')
 API_HOST = 'https://api.warframe.market'
 ALLOWED_ORIGIN = os.environ.get('ALLOWED_ORIGIN', '')
+ALLOWED_ORIGINS = [o.strip().rstrip('/') for o in ALLOWED_ORIGIN.split(',') if o.strip()]
+# Behind a reverse proxy: 'cf' trusts CF-Connecting-IP, 'xff' trusts the last X-Forwarded-For entry (added by the platform proxy).
+TRUST_PROXY = os.environ.get('TRUST_PROXY', '').strip().lower()
 API_VERSIONS = ['v2']
 IMG_BASE = 'https://warframe.market/static/assets/'
 START_TIME = time.time()
@@ -273,11 +276,29 @@ UPSTREAM_LOW_WAIT = 4.0   # background price prefetch gives up earlier than inte
 LOCAL = threading.local()
 STALE_MAX_AGE = 900       # serve cached data up to 15 minutes old when upstream fails
 INFLIGHT = {}
+IP_BUDGET = 120           # upstream requests one client may trigger per window
+IP_WINDOW = 60
+IP_HITS = {}
 
 
 def upstream_wait(url):
     """Space upstream requests apart so many visitors cannot trip the shared rate limit."""
     global UPSTREAM_NEXT
+    ip = getattr(LOCAL, 'ip', None)
+    if ip:
+        now = time.time()
+        with UPSTREAM_LOCK:
+            hits = [t for t in IP_HITS.get(ip, []) if now - t < IP_WINDOW]
+            if len(hits) >= IP_BUDGET:
+                IP_HITS[ip] = hits
+                error = HTTPError(url, 429, 'Per-client upstream budget exceeded', {}, None)
+                error.local = True
+                raise error
+            hits.append(now)
+            IP_HITS[ip] = hits
+            if len(IP_HITS) > 2000:
+                for key in [k for k, v in IP_HITS.items() if not v or now - v[-1] > IP_WINDOW]:
+                    IP_HITS.pop(key, None)
     with UPSTREAM_LOCK:
         now = time.time()
         start = max(now, UPSTREAM_NEXT)
@@ -690,9 +711,13 @@ AI_RATE_LIMITS_LAST_CLEANUP = 0.0
 
 
 def get_client_ip(handler):
-    """Real client IP: proxy headers are trusted only when the TCP peer is a local proxy (cloudflared, nginx)."""
+    """Real client IP. Proxy headers are trusted only from a local proxy, or when TRUST_PROXY says so."""
     peer = handler.client_address[0]
-    if peer in ('127.0.0.1', '::1', '::ffff:127.0.0.1'):
+    if TRUST_PROXY == 'xff':
+        forwarded = [p.strip() for p in (handler.headers.get('X-Forwarded-For') or '').split(',') if p.strip()]
+        if forwarded:
+            return forwarded[-1][:64]
+    if peer in ('127.0.0.1', '::1', '::ffff:127.0.0.1') or TRUST_PROXY == 'cf':
         for header in ('CF-Connecting-IP', 'X-Forwarded-For'):
             value = handler.headers.get(header)
             if value:
@@ -976,9 +1001,9 @@ def fetch_live_price(slug, platform):
 
 
 # ---------- Telegram price alerts (optional: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, ALERTS_KEY >= 8 chars) ----------
-TG_TOKEN = os.environ.get('8877254805:AAGnIbs5njsGp7qzrfnMQXAucCWrk3ykILk', '').strip()
-TG_CHAT_ID = os.environ.get('8773319339', '').strip()
-TG_KEY = os.environ.get('kavtrufol', '').strip()
+TG_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '').strip()
+TG_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '').strip()
+TG_KEY = os.environ.get('ALERTS_KEY', '').strip()
 TG_ENABLED = bool(TG_TOKEN and TG_CHAT_ID and len(TG_KEY) >= 8)
 TG_STATE_FILE = os.path.join(BASE_DIR, 'alerts_state.json')
 TG_INTERVAL = 180
@@ -1503,6 +1528,8 @@ MANIFEST = {
 
 
 class Handler(BaseHTTPRequestHandler):
+    timeout = 20  # drop idle or slow connections so they cannot pin a thread forever
+
     def log_message(self, *args):
         pass
 
@@ -1512,12 +1539,19 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Referrer-Policy', 'strict-origin-when-cross-origin')
         super().end_headers()
 
+    def cors_origin(self):
+        if not ALLOWED_ORIGINS:
+            return '*'
+        origin = (self.headers.get('Origin') or '').rstrip('/')
+        return origin if origin in ALLOWED_ORIGINS else ALLOWED_ORIGINS[0]
+
     def send_json(self, obj, status=200):
         raw = json.dumps(obj, ensure_ascii=False).encode('utf-8')
         self.send_response(status)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Cache-Control', 'no-store')
-        self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN or '*')
+        self.send_header('Access-Control-Allow-Origin', self.cors_origin())
+        self.send_header('Vary', 'Origin')
         self.end_headers()
         self.wfile.write(raw)
 
@@ -1530,7 +1564,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(204)
-        self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN or '*')
+        self.send_header('Access-Control-Allow-Origin', self.cors_origin())
+        self.send_header('Vary', 'Origin')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Platform, Language')
         self.end_headers()
@@ -1540,6 +1575,7 @@ class Handler(BaseHTTPRequestHandler):
             parsed = urlparse(self.path)
             path = parsed.path
             qs = parse_qs(parsed.query)
+            LOCAL.ip = get_client_ip(self)
             plat = self.platform(qs)
 
             if path in ('/', '/index.html'):
@@ -1547,7 +1583,7 @@ class Handler(BaseHTTPRequestHandler):
                     with open(INDEX_FILE, 'rb') as f:
                         body = f.read()
                 except FileNotFoundError:
-                    return self.send_json({'error': 'public/index.html not found'}, 500)
+                    return self.send_json({'ok': True, 'service': 'MarketPulse API', 'health': '/api/health'})
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/html; charset=utf-8')
                 self.end_headers()
@@ -1556,6 +1592,15 @@ class Handler(BaseHTTPRequestHandler):
 
             if path == '/api/tg/status':
                 return self.send_json({'enabled': TG_ENABLED})
+
+            if path == '/config.js':
+                raw = b"window.MP_API_BASE='';\n"
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/javascript; charset=utf-8')
+                self.send_header('Cache-Control', 'no-store')
+                self.end_headers()
+                self.wfile.write(raw)
+                return
 
             if path == '/manifest.webmanifest':
                 raw = json.dumps(MANIFEST, ensure_ascii=False).encode('utf-8')
@@ -1829,7 +1874,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(response)
 
             if path == '/api/search':
-                q = (qs.get('q', [''])[0] or '').strip()
+                q = (qs.get('q', [''])[0] or '').strip()[:80]
                 try:
                     items = get_items(plat)
                 except Exception as error:
