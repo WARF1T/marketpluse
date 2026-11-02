@@ -1,0 +1,20 @@
+{
+  "name": "MarketPulse",
+  "short_name": "MarketPulse",
+  "description": "Аналитика фарма платины Warframe",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "lang": "ru",
+  "background_color": "#0b1020",
+  "theme_color": "#0B0F14",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

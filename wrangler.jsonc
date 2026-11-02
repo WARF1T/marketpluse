@@ -1,0 +1,32 @@
+{
+  // Имя Worker'а. Адрес будет https://marketpulse.<твой-поддомен>.workers.dev
+  // При подключении через GitHub имя в панели Cloudflare должно совпадать с этим.
+  "name": "marketpulse",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-10-01",
+
+  // Сайт (index.html и т.д.) раздаётся из папки public, API обрабатывает src/worker.js
+  "assets": { "directory": "./public", "binding": "ASSETS" },
+
+  // Запускать Worker в Европе рядом с Google: иначе Gemini может ответить
+  // «User location is not supported», если запрос обработает дата-центр в неподдерживаемой стране.
+  "placement": { "region": "gcp:europe-west1" },
+
+  // Проверка Telegram-алертов раз в 3 минуты (без настроенного Telegram просто ничего не делает)
+  "triggers": { "crons": ["*/3 * * * *"] },
+
+  "observability": { "enabled": true },
+
+  // Несекретные настройки. Ключи (GEMINI_API_KEY и т.д.) сюда НЕ пиши: их добавляют как Secret в панели.
+  "vars": {
+    "GEMINI_MODEL": "gemini-3.8-flash",
+    "GEMINI_FALLBACK_MODEL": "gemini-2.5-flash-lite",
+    "GEMINI_THINKING_LEVEL": "low"
+  }
+
+  // Для Telegram-алертов: создай KV-хранилище, убери // в трёх строках ниже и впиши его ID
+  // (и не забудь поставить запятую после закрывающей скобки "vars" выше).
+  // "kv_namespaces": [
+  //   { "binding": "ALERTS_KV", "id": "ВСТАВЬ_СЮДА_ID" }
+  // ]
+}
