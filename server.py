@@ -16,6 +16,32 @@ import urllib.request
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_FILE = os.path.join(BASE_DIR, 'public', 'index.html')
+
+
+def load_env_file():
+    """Optional .env support: KEY=VALUE lines. Real environment variables always win."""
+    for path in (os.path.join(BASE_DIR, '.env'), os.path.join(os.getcwd(), '.env'), '/etc/secrets/.env'):
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                lines = f.read().splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            line = line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            key, value = line.split('=', 1)
+            key = key.strip()
+            if key.startswith('export '):
+                key = key[7:].strip()
+            value = value.strip()
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+                value = value[1:-1]
+            if re.match(r'^[A-Z_][A-Z0-9_]*$', key) and value:
+                os.environ.setdefault(key, value)
+
+
+load_env_file()
 API_HOST = 'https://api.warframe.market'
 ALLOWED_ORIGIN = os.environ.get('ALLOWED_ORIGIN', '')
 ALLOWED_ORIGINS = [o.strip().rstrip('/') for o in ALLOWED_ORIGIN.split(',') if o.strip()]
@@ -1097,6 +1123,72 @@ def tg_alert_loop():
         time.sleep(TG_INTERVAL)
 
 
+PROBE_LOCK = threading.Lock()
+PROBE_STATE = {'at': 0.0, 'ai_at': 0.0, 'result': None}
+
+
+def probe_ai():
+    key = (os.environ.get('GEMINI_API_KEY') or '').strip()
+    if not key:
+        return {'configured': False, 'hint': 'GEMINI_API_KEY is not set on the server'}
+    out = {'configured': True, 'tries': []}
+    models = [GEMINI_MODEL] + ([GEMINI_FALLBACK_MODEL] if GEMINI_FALLBACK_MODEL and GEMINI_FALLBACK_MODEL != GEMINI_MODEL else [])
+    for model in models:
+        body = json.dumps({'contents': [{'role': 'user', 'parts': [{'text': 'Reply with the word ok'}]}],
+                           'generationConfig': {'maxOutputTokens': 16}}).encode('utf-8')
+        req = urllib.request.Request(f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent', data=body,
+                                     headers={'x-goog-api-key': key, 'content-type': 'application/json'}, method='POST')
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                out['tries'].append({'model': model, 'ok': True, 'status': resp.status})
+        except HTTPError as error:
+            try:
+                message = json.loads(error.read().decode('utf-8')).get('error', {}).get('message', '')
+            except Exception:
+                message = ''
+            out['tries'].append({'model': model, 'ok': False, 'status': error.code, 'message': str(message)[:160]})
+        except Exception as error:
+            out['tries'].append({'model': model, 'ok': False, 'message': f'{type(error).__name__}: {str(error)[:100]}'})
+    return out
+
+
+def run_probes(platform, with_ai=False):
+    """Live checks for troubleshooting: open /api/health?deep=1 (add &ai=1 to test the Gemini key)."""
+    now = time.time()
+    with PROBE_LOCK:
+        cached = PROBE_STATE['result']
+        if cached is not None and now - PROBE_STATE['at'] < 15 and (not with_ai or 'ai' in cached):
+            return cached
+        PROBE_STATE['at'] = now
+        run_ai = with_ai and now - PROBE_STATE['ai_at'] >= 30
+        if run_ai:
+            PROBE_STATE['ai_at'] = now
+    result, thumb = {}, ''
+    try:
+        items = get_items(platform)
+        thumb = next((i['thumb'] for i in items if i.get('thumb')), '')
+        result['items'] = {'ok': True, 'count': len(items), 'withThumb': sum(1 for i in items if i.get('thumb'))}
+    except Exception as error:
+        result['items'] = {'ok': False, 'error': f'{type(error).__name__}: {str(error)[:120]}'}
+    if thumb:
+        try:
+            req = urllib.request.Request(thumb, headers={'User-Agent': UA, 'Accept': 'image/avif,image/webp,image/*,*/*', 'Referer': 'https://warframe.market/'})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                body = resp.read(300000)
+                result['image'] = {'ok': True, 'status': resp.status, 'type': str(resp.headers.get('Content-Type') or '')[:40], 'bytes': len(body), 'url': thumb}
+        except Exception as error:
+            result['image'] = {'ok': False, 'url': thumb, 'error': f'{type(error).__name__}: {str(error)[:120]}'}
+    elif result['items'].get('ok'):
+        result['image'] = {'ok': False, 'error': 'catalog items have no thumb field'}
+    if run_ai:
+        result['ai'] = probe_ai()
+    elif with_ai:
+        result['ai'] = {'cooldown': 'try again in 30 seconds'}
+    with PROBE_LOCK:
+        PROBE_STATE['result'] = result
+    return result
+
+
 ICON_PNG_B64 = (
     'iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAIAAAB7GkOtAAB6YklEQVR42u39eZwk2XXfh55zb2Rm7d3Vy/S+zvTsg8HsG4ABMABB'
     'ABRJ6UmWScs0bX0svWfJlPwkfWRql0DJpEhRtCnZlp7eR/L7fCibIimSMkmBIEZYBsCsmMEswKw9PdP7vtWaGXHveX/cuBE3IiOz'
@@ -1632,12 +1724,16 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             if path == '/api/health':
-                return self.send_json({
+                health = {
                     'ok': True,
                     'cacheEntries': len(CACHE),
                     'imageCacheEntries': len(IMAGE_CACHE),
                     'uptimeSeconds': round(time.time() - START_TIME),
-                })
+                    'ai': {'configured': bool((os.environ.get('GEMINI_API_KEY') or '').strip()), 'model': GEMINI_MODEL, 'fallback': GEMINI_FALLBACK_MODEL},
+                }
+                if qs.get('deep', [''])[0] == '1':
+                    health['probe'] = run_probes(plat, qs.get('ai', [''])[0] == '1')
+                return self.send_json(health)
 
             if path == '/api/image':
                 src = qs.get('src', [''])[0].strip()
@@ -1704,7 +1800,7 @@ class Handler(BaseHTTPRequestHandler):
                     self.wfile.write(body)
                     return
                 except Exception as error:
-                    print(f'Image proxy error: {type(error).__name__}: {error}')
+                    print(f'Image proxy error: {type(error).__name__}: {error} ({src[:100]})')
                     return self.send_json({'error': 'image unavailable'}, 502)
 
             if path == '/api/items':
