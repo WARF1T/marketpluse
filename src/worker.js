@@ -9,12 +9,17 @@
 //   ALLOWED_ORIGIN                 адреса сайта через запятую (нужно, только если сайт на другом домене)
 //   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, ALERTS_KEY (секреты) + KV-привязка ALERTS_KV + Cron Trigger — алерты в Telegram
 
-const API_HOST = 'https://api.warframe.market';
+const DEFAULT_API_HOST = 'https://api.warframe.market';
+// Можно переопределить переменной WFM_API_BASE (адрес релея вне Cloudflare, см. relay/README.md)
+let API_HOST = DEFAULT_API_HOST;
+let PROXY_KEY = '';
 const IMG_BASE = 'https://warframe.market/static/assets/';
-const UA = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36';
+// Честный User-Agent: поддельный «Chrome» с IP Cloudflare Worker'а бот-защита считает ботом и отвечает 403.
+let UA = 'MarketPulse/1.1 (Cloudflare Worker; warframe.market API client)';
 const PLATFORMS = ['pc', 'ps4', 'xbox', 'switch'];
 const SLUG_RE = /^[a-z0-9_]{1,80}$/;
-const START_TIME = Date.now();
+// В Workers Date.now() на верхнем уровне равен 0, поэтому время старта фиксируем при первом запросе.
+let START_TIME = 0;
 
 const CACHE_MAX_SIZE = 1500;
 const ERROR_CACHE_TTL = 15;
@@ -250,7 +255,7 @@ async function fetchJsonInner(key, url, ttl, platform, language, ctx) {
   }
   // Не удаляем Platform/Language при ошибке: иначе консольный запрос может получить цены PC.
   const variants = [
-    { 'User-Agent': UA, Accept: 'application/json', Platform: platform, Language: language },
+    { 'User-Agent': UA, Accept: 'application/json', Platform: platform, Language: language, ...(PROXY_KEY ? { 'X-Relay-Key': PROXY_KEY } : {}) },
   ];
   let last = null;
   for (const headers of variants) {
@@ -844,7 +849,7 @@ async function handleGet(request, env, url, ctx) {
   if (path === '/api/health') {
     const cfg = aiConfig(env);
     const health = { ok: true, runtime: 'cloudflare-workers', marketStatus: 'not-checked', cacheEntries: CACHE.size, imageCacheEntries: 0,
-      uptimeSeconds: Math.round((now() - START_TIME) / 1000),
+      uptimeSeconds: Math.round((now() - START_TIME) / 1000), upstream: API_HOST === DEFAULT_API_HOST ? 'direct' : 'relay',
       ai: { configured: Boolean(cfg.key), model: cfg.model, fallback: cfg.fallback },
       telegram: { enabled: tgConfig(env).enabled, kvBound: Boolean(env.ALERTS_KV) } };
     if (url.searchParams.get('deep') === '1') {
@@ -1018,8 +1023,16 @@ async function handlePost(request, env, url, ctx) {
   return J({ error: 'not found' }, 404);
 }
 
+function applyEnv(env) {
+  if (!START_TIME) START_TIME = Date.now();
+  API_HOST = String((env && env.WFM_API_BASE) || DEFAULT_API_HOST).replace(/\/+$/, '');
+  PROXY_KEY = String((env && env.WFM_RELAY_KEY) || '');
+  if (env && env.UPSTREAM_UA) UA = String(env.UPSTREAM_UA);
+}
+
 export default {
   async fetch(request, env) {
+    applyEnv(env);
     const url = new URL(request.url);
     const ctx = { ip: (request.headers.get('CF-Connecting-IP') || 'unknown').slice(0, 64), low: false };
     try {
@@ -1042,6 +1055,7 @@ export default {
 
   // Cron Trigger (раз в 3 минуты): проверка алертов Telegram
   async scheduled(event, env, ctx) {
+    applyEnv(env);
     ctx.waitUntil(tgCheckOnce(env).catch((e) => console.log(`Alert loop error: ${e.message}`)));
   },
 };
