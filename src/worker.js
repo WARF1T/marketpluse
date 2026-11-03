@@ -248,10 +248,9 @@ async function fetchJsonInner(key, url, ttl, platform, language, ctx) {
     if (hit && t - hit.at < STALE_MAX_AGE * 1000) return hit.data;
     throw errHit.error;
   }
+  // Не удаляем Platform/Language при ошибке: иначе консольный запрос может получить цены PC.
   const variants = [
     { 'User-Agent': UA, Accept: 'application/json', Platform: platform, Language: language },
-    { 'User-Agent': UA, Accept: 'application/json' },
-    { 'User-Agent': UA },
   ];
   let last = null;
   for (const headers of variants) {
@@ -260,8 +259,8 @@ async function fetchJsonInner(key, url, ttl, platform, language, ctx) {
       const resp = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
       if (!resp.ok) {
         last = new HttpError(resp.status, `HTTP ${resp.status}`);
-        if (![400, 403, 404, 405, 406].includes(resp.status)) break;
-        continue;
+        // Повтор с другими заголовками не исправляет запрет доступа.
+        break;
       }
       const data = await resp.json();
       lruSet(CACHE, key, { at: now(), data });
@@ -272,13 +271,14 @@ async function fetchJsonInner(key, url, ttl, platform, language, ctx) {
       if (e instanceof HttpError && e.local) break;
     }
   }
-  if (last instanceof HttpError && last.status === 429 && !last.local) lruSet(ERROR_CACHE, key, { at: now(), error: last });
+  if (last instanceof HttpError && [403, 429].includes(last.status) && !last.local) lruSet(ERROR_CACHE, key, { at: now(), error: last });
   const stale = CACHE.get(key);
   if (stale && now() - stale.at < STALE_MAX_AGE * 1000) return stale.data;
   throw last || new Error('нет соединения');
 }
 
-const isRateLimited = (e) => e instanceof HttpError && e.status === 429;
+const isRateLimited = (e) => !!e && e.status === 429;
+const failCode = (e) => (isRateLimited(e) ? 429 : 502);
 
 // ---------- каталог ----------
 function publicItem(item) {
@@ -330,7 +330,9 @@ async function getItems(ctx) {
         raw = await fetchJson(`${API_HOST}/v2/items`, 600, 'pc', 'ru', ctx);
       } catch (e) {
         if (ITEMS_MEM) return ITEMS_MEM;
-        throw new Error(friendly(e));
+        const error = new Error(friendly(e));
+        error.status = e.status || null;
+        throw error;
       }
       const rawItems = extractList(raw, ['items']);
       if (!rawItems.length) throw new Error('каталог пуст');
@@ -739,7 +741,7 @@ async function runProbes(env, request, withAi, ctx) {
     thumb = (items.find((i) => i.thumb) || {}).thumb || '';
     result.items = { ok: true, count: items.length, withThumb: items.filter((i) => i.thumb).length };
   } catch (e) {
-    result.items = { ok: false, error: `${e.name}: ${String(e.message).slice(0, 120)}` };
+    result.items = { ok: false, upstreamStatus: e.status || null, error: `${e.name}: ${String(e.message).slice(0, 160)}` };
   }
   if (thumb) {
     try {
@@ -841,11 +843,14 @@ async function handleGet(request, env, url, ctx) {
 
   if (path === '/api/health') {
     const cfg = aiConfig(env);
-    const health = { ok: true, runtime: 'cloudflare-workers', cacheEntries: CACHE.size, imageCacheEntries: 0,
+    const health = { ok: true, runtime: 'cloudflare-workers', marketStatus: 'not-checked', cacheEntries: CACHE.size, imageCacheEntries: 0,
       uptimeSeconds: Math.round((now() - START_TIME) / 1000),
       ai: { configured: Boolean(cfg.key), model: cfg.model, fallback: cfg.fallback },
       telegram: { enabled: tgConfig(env).enabled, kvBound: Boolean(env.ALERTS_KV) } };
-    if (url.searchParams.get('deep') === '1') health.probe = await runProbes(env, request, url.searchParams.get('ai') === '1', ctx);
+    if (url.searchParams.get('deep') === '1') {
+      health.probe = await runProbes(env, request, url.searchParams.get('ai') === '1', ctx);
+      health.marketStatus = health.probe.items && health.probe.items.ok ? 'catalog-available' : 'unavailable';
+    }
     return J(health);
   }
 
@@ -857,7 +862,7 @@ async function handleGet(request, env, url, ctx) {
     if (!Number.isFinite(limit)) limit = 60;
     limit = clamp(limit, 12, 100);
     let all;
-    try { all = (await getItems(ctx)).public; } catch (e) { console.log(`Items failed: ${e.message}`); return J({ error: 'Каталог временно недоступен' }, 502); }
+    try { all = (await getItems(ctx)).public; } catch (e) { console.log(`Items failed: ${e.message}`); return J({ error: friendly(e), upstreamStatus: e.status || null, source: 'warframe.market' }, failCode(e)); }
     const cat = (url.searchParams.get('category') || 'all').toLowerCase() || 'all';
     const prime = (url.searchParams.get('prime') || '0') === '1';
     if (cat !== 'all' || prime) {
@@ -879,7 +884,6 @@ async function handleGet(request, env, url, ctx) {
     const slug = slugFrom(path, prefix);
     if (!slug) return J({ error: 'slug required' }, 400);
     if (slug.length > 160) return J({ error: 'slug too long' }, 414);
-    const failCode = (e) => (isRateLimited(e) ? 429 : 502);
 
     if (prefix === '/api/item-detail/') {
       try { return J({ slug, ...(await fetchItemDetail(slug, plat, ctx)) }); } catch (e) {
@@ -912,7 +916,7 @@ async function handleGet(request, env, url, ctx) {
         });
       } catch (e) {
         console.log(`Price failed for ${slug}: ${e.message}`);
-        return J({ slug, available: false }, failCode(e));
+        return J({ slug, available: false, error: friendly(e), upstreamStatus: e.status || null, source: 'warframe.market' }, failCode(e));
       }
     }
     // /api/item/

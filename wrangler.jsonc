@@ -1,7 +1,7 @@
 {
   // Имя Worker'а. Адрес будет https://marketpulse.<твой-поддомен>.workers.dev
   // При подключении через GitHub имя в панели Cloudflare должно совпадать с этим.
-  "name": "marketpulse",
+  "name": "marketpluse",
   "main": "src/worker.js",
   "compatibility_date": "2025-10-01",
 

@@ -918,9 +918,14 @@ var DB=[
 var DEMO_DB=DB.map(function(item){return Object.assign({},item)});
 var DEMO_BY_SLUG=Object.create(null);
 DEMO_DB.forEach(function(item){DEMO_BY_SLUG[item.slug]=item});
+// Демо-описания доступны как справочник, но демо-котировки не показываются.
+DB=[];
 var CATALOG=[];var DB_BY_SLUG=Object.create(null);DB.forEach(function(x){DB_BY_SLUG[x.slug]=x});
 var catalogReady=false,catalogLoading=false,catalogLoadingMore=false,catalogRenderLimit=36,catalogOffset=0,catalogTotal=0,catalogVersion=0;
+var catalogError='';
 var catalogFilters={cat:'all',prime:false};
+function marketStatus(text,ok){$('apiChip').textContent=text;$('apiChip').className='chipApi '+(ok?'ok':'bad')}
+
 function rebuildDbIndex(){DB_BY_SLUG=Object.create(null);DB.forEach(function(x){DB_BY_SLUG[x.slug]=x})}
 function dbGet(slug){return DB_BY_SLUG[slug]||null}
 function itemCategory(tags){tags=tags||[];var t=tags.map(function(x){return String(x).toLowerCase()});
@@ -931,7 +936,7 @@ if(t.indexOf('relic')!==-1)return 'relics';
 if(t.indexOf('resource')!==-1||t.indexOf('material')!==-1)return 'resources';
 if(t.indexOf('arcane_enhancement')!==-1||t.indexOf('arcane')!==-1)return 'arcanes';
 return 'other'}
-function catalogToItem(raw){raw=raw||{};var i18n=raw.i18n||{};var en=i18n.en||{};var ru=i18n.ru||i18n.uk||{};var tags=Array.isArray(raw.tags)?raw.tags:[];var demo=DEMO_BY_SLUG[raw.slug]||{};var category=itemCategory(tags);return {slug:raw.slug||demo.slug||'',name:en.name||raw.name||demo.name||raw.slug||'',nameRu:ru.name||raw.nameRu||demo.nameRu||en.name||raw.slug||'',cat:category!=='other'?category:(demo.cat||'other'),tags:tags,prime:raw.prime===true||tags.some(function(tag){return String(tag).toLowerCase()==='prime'})||!!demo.prime,thumb:raw.thumb||raw.thumbnail||raw.icon||raw.image||en.thumb||en.thumbnail||en.icon||en.image||ru.thumb||ru.thumbnail||ru.icon||ru.image||demo.thumb||'',icon:raw.icon||demo.icon||'',demoPrice:demo.price!=null?Number(demo.price):null,livePrice:null,price:demo.price!=null?Number(demo.price):null,change:Number(demo.change)||0,volume:Number(demo.volume)||0,farm:demo.farm||'Warframe Market',timeMin:Number(demo.timeMin)||0,ducats:Number(raw.ducats)||demo.ducats||0};}
+function catalogToItem(raw){raw=raw||{};var i18n=raw.i18n||{};var en=i18n.en||{};var ru=i18n.ru||i18n.uk||{};var tags=Array.isArray(raw.tags)?raw.tags:[];var demo=DEMO_BY_SLUG[raw.slug]||{};var category=itemCategory(tags);return {slug:raw.slug||demo.slug||'',name:en.name||raw.name||demo.name||raw.slug||'',nameRu:ru.name||raw.nameRu||demo.nameRu||en.name||raw.slug||'',cat:category!=='other'?category:(demo.cat||'other'),tags:tags,prime:raw.prime===true||tags.some(function(tag){return String(tag).toLowerCase()==='prime'})||!!demo.prime,thumb:raw.thumb||raw.thumbnail||raw.icon||raw.image||en.thumb||en.thumbnail||en.icon||en.image||ru.thumb||ru.thumbnail||ru.icon||ru.image||demo.thumb||'',icon:raw.icon||demo.icon||'',demoPrice:null,livePrice:null,price:null,change:null,volume:0,farm:demo.farm||'Warframe Market',timeMin:Number(demo.timeMin)||0,ducats:Number(raw.ducats)||demo.ducats||0};}
 function mergeCatalogItems(arr){
 var by=Object.create(null);CATALOG.forEach(function(x){by[x.slug]=x});
 arr.map(catalogToItem).filter(function(x){return x.slug}).forEach(function(x){
@@ -947,19 +952,19 @@ $('platChips').addEventListener('click',function(e){var b=e.target.closest('.chi
 syncPlatChips();
 async function loadCatalog(reset){
 if(catalogLoading)return;catalogLoading=true;
-if(reset){CATALOG=[];catalogOffset=0;catalogTotal=0;catalogReady=false}
+if(reset){CATALOG=[];DB=CATALOG;rebuildDbIndex();catalogVersion++;catalogError='';catalogOffset=0;catalogTotal=0;catalogReady=false;renderMarket();renderTicker()}
 try{var params='?platform='+platform+'&offset='+catalogOffset+'&limit='+catalogRenderLimit;
 if(catalogFilters.cat!=='all')params+='&category='+encodeURIComponent(catalogFilters.cat);if(catalogFilters.prime)params+='&prime=1';
 var d=await api('/api/items'+params),arr=Array.isArray(d.items)?d.items:[];mergeCatalogItems(arr);catalogTotal=Number(d.total)||CATALOG.length;catalogOffset+=arr.length;catalogReady=true;
-$('apiChip').textContent='API: '+fmt(catalogTotal);$('apiChip').className='chipApi ok';renderMarket();renderTicker();
-}catch(e){console.warn('Catalog load failed',e);if(!CATALOG.length)catalogReady=false}finally{catalogLoading=false}
+catalogError='';marketStatus('Каталог: '+fmt(catalogTotal),true);renderMarket();renderTicker();
+}catch(e){console.warn('Catalog load failed',e);catalogError=e.message||'Не удалось загрузить каталог';if(!CATALOG.length)catalogReady=false;marketStatus('Рынок: недоступен',false);renderMarket();renderTicker()}finally{catalogLoading=false}
 }
 async function loadMoreCatalog(){if(catalogLoadingMore||catalogOffset>=catalogTotal)return;catalogLoadingMore=true;
 try{var params='?platform='+platform+'&offset='+catalogOffset+'&limit='+catalogRenderLimit;if(catalogFilters.cat!=='all')params+='&category='+encodeURIComponent(catalogFilters.cat);if(catalogFilters.prime)params+='&prime=1';
 var d=await api('/api/items'+params),arr=Array.isArray(d.items)?d.items:[];mergeCatalogItems(arr);catalogTotal=Number(d.total)||catalogTotal;catalogOffset+=arr.length;renderMarket();
 }catch(e){console.warn('Catalog page failed',e)}finally{catalogLoadingMore=false}
 }
-function marketSource(){return catalogReady?CATALOG:DB}
+function marketSource(){return CATALOG}
 function itemMatches(it,q){return !q||norm((it.nameRu||'')+' '+(it.name||'')+' '+(it.slug||'')).indexOf(norm(q))!==-1}
 var RELICS=[
 {name:'Axi V7',era:'Axi',drops:['Volt Prime Systems','Volt Prime Neuroptics'],advice:'Открывай, если фармишь Вольт Прайм — системы в цене.'},
@@ -1061,9 +1066,9 @@ function cardHTML(it){var fav=isFav(it.slug);var img=it.thumb||it.icon;var price
 var art=it._imageFailed?'<span class="imageFallback">◆</span>':(img?imageHTML(img,it.name||it.slug):imagePlaceholder());
 return '<div class="gcard pcard" data-slug="'+esc(it.slug)+'" data-tip="'+esc(it.farm||'Warframe Market')+'">'+
 '<div class="art">'+art+'</div><b>'+esc(it.nameRu||it.name)+'</b><div class="en">'+esc(it.name||it.slug)+'</div>'+
-'<div class="prow"><span class="priceP">'+(priceVisible?fmt(it.price)+' p':'—')+'</span><span class="chg '+((it.change||0)>=0?'up':'down')+'">'+(priceVisible?(it.change>=0?'▲':'▼')+Math.abs(it.change||0)+'%':'API')+'</span><span class="vol">'+(it.volume?'объём '+fmt(it.volume):'цена при открытии')+'</span></div>'+
+'<div class="prow"><span class="priceP">'+(priceVisible?fmt(it.price)+' p':'—')+'</span><span class="chg '+((it.change||0)>=0?'up':'down')+'">'+(it.change!=null?(it.change==null?'ордера':(it.change>=0?'▲':'▼')+Math.abs(it.change)+'%'):(priceVisible?'ордера':'нет цены'))+'</span><span class="vol">'+(it.volume?'объём '+fmt(it.volume):'цена при открытии')+'</span></div>'+
 '<button class="starBtn'+(fav?' on':'')+'" data-star="'+esc(it.slug)+'">★</button></div>'}
-function renderMarket(){var g=$('marketGrid');var list=filtered();var shown=list.slice(0,Math.max(36,Math.min(catalogOffset||36,list.length)));g.innerHTML=shown.map(cardHTML).join('');
+function renderMarket(){var g=$('marketGrid');var list=filtered();var shown=list.slice(0,Math.max(36,Math.min(catalogOffset||36,list.length)));g.innerHTML=shown.length?shown.map(cardHTML).join(''):'<div class="gcard" role="status">'+esc(catalogError?('Рыночные данные недоступны. '+catalogError+' Демо-цены отключены. Обнови страницу для повторной попытки.'):'Загрузка каталога…')+'</div>';
 var more=$('marketMore');if(more){more.hidden=!(catalogOffset<catalogTotal);more.textContent=catalogLoadingMore?'Загрузка…':'Показать ещё'}hydrateVisiblePrices(shown,catalogVersion)}
 var priceQueueBusy=false;
 function hydrateVisiblePrices(items,version){
@@ -1219,7 +1224,17 @@ $('itSub').textContent=pseudo.name;$('itCat').textContent=CAT_RU[pseudo.cat]||ps
 $('itFarm').textContent='🌾 '+pseudo.farm;syncItFav();
 $('itStats').innerHTML='<div class="gcard stat"><small>Загрузка…</small><b>…</b></div>'.repeat(6);
 if(!viewedItems[slug]){viewedItems[slug]=true;store.set('viewedItems',viewedItems);addXp(2,'просмотр аналитики')}
-var d=await liveItem(slug);if(requestId!==itemRequestId)return;var isLive=!!(d&&d.stats);var isRateLimited=!!(d&&d.rateLimited);var st=isLive?d.stats:mockStats(pseudo);
+var d=await liveItem(slug);if(requestId!==itemRequestId)return;var isLive=!!(d&&d.stats);var isRateLimited=!!(d&&d.rateLimited);var st=isLive?d.stats:null;
+if(!isLive){
+var unavailable=isRateLimited?'Лимит запросов к рынку. Попробуй позже.':'Рыночные данные недоступны. Демо-оценки отключены.';
+$('itPrice').textContent='—';$('itChange').textContent='нет данных';
+$('itStats').textContent=unavailable;$('itNote').textContent=unavailable;
+$('itAdviceLabel').textContent='Аналитика недоступна';$('itAdviceText').textContent=unavailable;$('itAdviceMeta').textContent='';
+$('itScore').textContent='—';$('itVerdict').textContent='Нет данных';$('platCmp').textContent='';
+$('itDial').style.background='none';['bDemand','bSupply','bPayback'].forEach(function(id){$(id).style.width='0%'});
+window._chartCtx=null;window._lastHist=[];if(charts.price){charts.price.destroy();delete charts.price}
+$('chartNote').textContent='Нет истории сделок';offersMsg(unavailable);renderCompare();renderSimilar(pseudo);return;
+}
 if(d){
 if(d.name){pseudo.name=d.name}
 if(d.nameRu){pseudo.nameRu=d.nameRu}
@@ -1248,7 +1263,7 @@ pseudo.liveSampleSize=Number(st.liveSampleSize||0);
 pseudo.marketSampleSize=Number(st.marketSampleSize||0);
 }
 $('itPrice').textContent=fmt(st.medianSell||pseudo.price)+' p';
-var ch=pseudo.change;$('itChange').className='chg '+(ch>=0?'up':'down');$('itChange').textContent=(ch>=0?'▲ ':'▼ ')+Math.abs(ch)+'%';
+var ch=pseudo.change;$('itChange').className='chg '+(ch>=0?'up':'down');$('itChange').textContent=ch==null?'Изменение за сутки не получено':(ch>=0?'▲ ':'▼ ')+Math.abs(ch)+'%';
 var ph=profitHourOf(pseudo,st),pb=st.paybackScore!=null?Number(st.paybackScore):paybackOf(st);
 $('itStats').innerHTML=
 '<div class="gcard stat"><small>Медиана продажи</small><b class="gold">'+fmt(st.medianSell)+' p</b></div>'+
@@ -1281,7 +1296,7 @@ $('itAdviceMeta').textContent=adviceMeta.join(' · ');
 window._chartCtx={it:pseudo,st:st};drawPriceChart(pseudo,st,cachedReal(slug));loadHistory(slug);renderCompare();renderSimilar(pseudo);
 activity[6]+=0; save()}
 function syncItFav(){$('itFavBtn').classList.toggle('on',isFav(state.slug))}
-function drawPriceChart(it,st,real){var pts=state.period==='24h'?24:state.period==='7d'?28:30;
+function drawPriceChart(it,st,real){if(!real){if(charts.price){charts.price.destroy();delete charts.price}window._lastHist=[];$('chartNote').textContent='История реальных сделок не получена. Модельный график отключён.';return}var pts=state.period==='24h'?24:state.period==='7d'?28:30;
 var base=st.medianSell||it.price||50;var hist=genHistory(it.slug,base,pts,it.change);
 var vols=genHistory(it.slug+'v',Math.max(5,it.volume/4),pts,2);
 var labels=[];for(var i=0;i<pts;i++)labels.push(state.period==='24h'?i+':00':'д'+(i+1));
@@ -1568,19 +1583,14 @@ try{if(n)localStorage.setItem('mp2_apiBase',n);else localStorage.removeItem('mp2
 if(API_BASE){var wake0=Date.now(),wakeT=setTimeout(function(){toast('Сервер просыпается, это может занять до минуты','info')},4000);
 fetch(API_BASE+'/api/health',{cache:'no-store'}).then(function(){clearTimeout(wakeT);if(Date.now()-wake0>4000){var go=function(){if(catalogLoading){setTimeout(go,300);return}loadCatalog(true)};go()}}).catch(function(){clearTimeout(wakeT)})}
 $('tabsNav').addEventListener('click',function(e){var t=e.target.closest('.tab');if(t){showView(t.getAttribute('data-view'));t.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'})}});
-/* ==================== СИМУЛЯЦИЯ ЖИВЫХ ЦЕН ==================== */
-setInterval(function(){if(catalogReady)return;var r=rng(Date.now()&0xffff);
-for(var i=0;i<3;i++){var it=DB[Math.floor(r()*DB.length)];var d=(r()-0.5)*2.4;it.price=Math.max(1,Math.round(it.price*(1+d/100)));it.change=Math.round((it.change+d)*10)/10;
-if(alerts[it.slug]&&profile.notif.alerts&&it.price<=alerts[it.slug]){toast('🔔 '+it.nameRu+' цена '+it.price+' p — цель достигнута!','gold');notify('Алерт',it.nameRu+' ≤ '+alerts[it.slug]+' p','gold');delete alerts[it.slug];save()}}
-renderTicker();
-if(state.view==='favs')renderFavs()},9000);
+/* Случайная симуляция цен и алертов отключена. */
 /* ==================== INIT ==================== */
 applyTheme();renderTicker();renderNotifs();renderDashHead();
 $('favCnt').textContent=favs.length;
 showView('market');
 loadCatalog(true);
-api('/api/health').then(function(health){if(!health||health.ok!==true||health.runtime!=='cloudflare-workers')throw new Error('По адресу API не найден MarketPulse Worker');state.apiOnline=true;$('apiChip').textContent='API: онлайн';$('apiChip').className='chipApi ok';notify('API подключен','warframe.market v2 + история сделок','ok')})
-.catch(function(){$('apiChip').textContent='API: демо';$('apiChip').className='chipApi bad';notify('Демо-режим','API недоступен — данные локальные','warn')});
+api('/api/health').then(function(health){if(!health||health.ok!==true||health.runtime!=='cloudflare-workers')throw new Error('По адресу API не найден MarketPulse Worker');state.apiOnline=true;/* Это проверка Worker, а не рынка. Статус задаёт загрузка каталога. */})
+.catch(function(error){state.apiOnline=false;console.warn('Worker health failed',error)});
 if(profile.notif.tasks)notify('Задания дня','3 поиска, избранное и калькулятор — забери XP','info');
 })();
 </script>
