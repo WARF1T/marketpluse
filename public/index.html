@@ -840,7 +840,8 @@ var API_BASE=String(window.MP_API_BASE||'').replace(/\/+$/,'');
 var API_OK=/^(https:\/\/[a-z0-9.-]+|http:\/\/(localhost|127\.0\.0\.1))(:\d+)?$/i;
 function normApi(v){v=String(v||'').trim();if(!v)return'';if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(v))v='https://'+v;try{var u=new URL(v);return API_OK.test(u.origin)?u.origin:''}catch(e){return''}}
 try{
-if(!API_BASE)API_BASE=String(localStorage.getItem('mp2_apiBase')||'').replace(/\/+$/,'');
+var savedApi=normApi(localStorage.getItem('mp2_apiBase')||'');
+if(savedApi)API_BASE=savedApi;
 if(!API_BASE&&/\.(pages|workers)\.dev$/.test(location.hostname)){
 var typed=normApi(window.prompt('Адрес сервера данных (например https://имя.onrender.com):',''));
 if(typed){API_BASE=typed;localStorage.setItem('mp2_apiBase',typed)}
@@ -983,7 +984,7 @@ var LEADERS=[
 {name:'ОрокинДилер',xp:980},{name:'EndoMaster',xp:720},{name:'GrineerFriend',xp:430},{name:'НовичокТэнно',xp:120}
 ];
 /* ==================== API (live + демо-фолбэк) ==================== */
-async function api(path,body,timeoutMs){var controller=new AbortController();var timeoutId=setTimeout(function(){controller.abort()},timeoutMs||15000);var r;try{var opts={signal:controller.signal};if(body!==undefined){opts.method='POST';opts.headers={'Content-Type':'application/json'};opts.body=JSON.stringify(body)}r=await fetch((path.charAt(0)==='/'?API_BASE:'')+path,opts)}finally{clearTimeout(timeoutId)}var d=null;try{d=await r.json()}catch(e){d={}}if(!r.ok){var error=new Error(d.error||'HTTP '+r.status);error.status=r.status;error.data=d;throw error}return d}
+async function api(path,body,timeoutMs){var controller=new AbortController();var timeoutId=setTimeout(function(){controller.abort()},timeoutMs||15000);var r;try{var opts={signal:controller.signal};if(body!==undefined){opts.method='POST';opts.headers={'Content-Type':'application/json'};opts.body=JSON.stringify(body)}r=await fetch((path.charAt(0)==='/'?API_BASE:'')+path,opts)}finally{clearTimeout(timeoutId)}var d=null;try{d=await r.json()}catch(e){var invalid=new Error('Сервер вернул не JSON (HTTP '+r.status+'). Проверь адрес API и деплой Worker: возможно, вместо API отвечает статический сайт.');invalid.status=r.status;throw invalid}if(!r.ok){var error=new Error(d.error||'HTTP '+r.status);error.status=r.status;error.data=d;throw error}return d}
 function mockStats(it){var h=hash(it.slug);var vol=it.volume||40;var ms=it.price||Math.max(8,20+(h%140));var mb=Math.max(1,Math.round(ms*0.86));
 var spread=Math.round((ms-mb)/ms*1000)/10;var score=Math.max(5,Math.min(99,Math.round(vol/6+ (it.change>0?15:0) + 40 - spread*2)));
 return{source:'demo',sellCount:Math.round(vol*1.4),buyCount:vol,onlineSell:Math.round(vol*.5),onlineBuy:Math.round(vol*.4),
@@ -1578,7 +1579,7 @@ applyTheme();renderTicker();renderNotifs();renderDashHead();
 $('favCnt').textContent=favs.length;
 showView('market');
 loadCatalog(true);
-api('/api/health').then(function(){state.apiOnline=true;$('apiChip').textContent='API: онлайн';$('apiChip').className='chipApi ok';notify('API подключен','warframe.market v2 + история сделок','ok')})
+api('/api/health').then(function(health){if(!health||health.ok!==true||health.runtime!=='cloudflare-workers')throw new Error('По адресу API не найден MarketPulse Worker');state.apiOnline=true;$('apiChip').textContent='API: онлайн';$('apiChip').className='chipApi ok';notify('API подключен','warframe.market v2 + история сделок','ok')})
 .catch(function(){$('apiChip').textContent='API: демо';$('apiChip').className='chipApi bad';notify('Демо-режим','API недоступен — данные локальные','warn')});
 if(profile.notif.tasks)notify('Задания дня','3 поиска, избранное и калькулятор — забери XP','info');
 })();
